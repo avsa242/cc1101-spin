@@ -20,7 +20,7 @@ VAR
 OBJ
 
     spi : "SPI_Asm"                                             'PASM SPI Driver
-    core: "core.con.your_spi_device_here"                       'File containing your device's register set
+    core: "core.con.cc1101"
     time: "time"                                                'Basic timing functions
 
 PUB Null
@@ -33,7 +33,7 @@ PUB Start(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN) : okay
 PUB Startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_DELAY, SCK_CPOL): okay
     if SCK_DELAY => 1 and lookdown(SCK_CPOL: 0, 1)
         if okay := spi.start (SCK_DELAY, SCK_CPOL)              'SPI Object Started?
-            time.MSleep (1)                                     'Add startup delay appropriate to your device (consult its datasheet)
+            time.MSleep (5)
             _CS := CS_PIN
             _MOSI := MOSI_PIN
             _MISO := MISO_PIN
@@ -64,6 +64,11 @@ PRI readRegX(reg, nr_bytes, addr_buff) | i
 
 PRI writeRegX(reg, nr_bytes, val) | i
 ' Write nr_bytes to register 'reg' stored in val
+'HEADER BYTE:
+' MSB   = R(1)/W(0) bit
+' b6    = BURST ACCESS BIT (B)
+' b5..0 = 6-bit ADDRESS (A5-A0)
+'IF CS PULLED LOW, WAIT UNTIL SO LOW WHEN IN SLEEP OR XOFF STATES
 
     outa[_CS] := 0
     spi.SHIFTOUT(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
