@@ -12,29 +12,51 @@
 
 CON
 
-    _clkmode = cfg#_clkmode
-    _xinfreq = cfg#_xinfreq
+    _clkmode    = cfg#_clkmode
+    _xinfreq    = cfg#_xinfreq
+
+    CS_PIN      = 13
+    SCK_PIN     = 8
+    MOSI_PIN    = 9
+    MISO_PIN    = 10
 
 OBJ
 
-    cfg   : "core.con.boardcfg.flip"
-    ser   : "com.serial.terminal"
-    time  : "time"
+    cfg : "core.con.boardcfg.flip"
+    ser : "com.serial.terminal"
+    time: "time"
+    rf  : "wireless.transceiver.cc1101.spi"
 
 VAR
 
     byte _ser_cog
 
-PUB Main
+PUB Main | i, j, tmp
 
     Setup
+    ser.CharIn
+
+    Flash (cfg#LED1)
 
 PUB Setup
 
     repeat until _ser_cog := ser.Start (115_200)
     ser.Clear
     ser.Str(string("Serial terminal started", ser#NL))
+    if rf.Start (CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
+        ser.Str (string("CC1101 driver started", ser#NL))
+    else
+        ser.Str (string("CC1101 driver failed to start - halting", ser#NL))
+        rf.Stop
+        time.MSleep (500)
+        ser.Stop
 
+PUB Flash(pin)
+
+    dira[pin] := 1
+    repeat
+        !outa[pin]
+        time.MSleep (100)
 
 DAT
 {

@@ -46,23 +46,31 @@ PUB Startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_DELAY, SCK_CPOL): okay
 
     return FALSE                                                'If we got here, something went wrong
 
-PRI readRegX(reg, nr_bytes, addr_buff) | i
+PUB Stop
+
+    spi.stop
+
+PUB PartNumber
+
+    readRegX (core#PARTNUM, 1, @result)
+
+PUB Version
+
+    readRegX (core#VERSION, 1, @result)
+
+PUB readRegX(reg, nr_bytes, addr_buff) | i
 ' Read nr_bytes from register 'reg' to address 'addr_buff'
 
 ' Handle quirky registers on a case-by-case basis
-    case reg
-        core#REG_NAME:
-            'Special handling for register REG_NAME
-        OTHER:
 
     outa[_CS] := 0
-    spi.SHIFTOUT(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
+    spi.SHIFTOUT(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg | core#R)
     
-    repeat i from 0 to nr_bytes
+    repeat i from 0 to nr_bytes-1
         byte[addr_buff][i] := spi.SHIFTIN(_MISO, _SCK, core#MISO_BITORDER, 8)
     outa[_CS] := 1
 
-PRI writeRegX(reg, nr_bytes, val) | i
+PUB writeRegX(reg, nr_bytes, val) | i
 ' Write nr_bytes to register 'reg' stored in val
 'HEADER BYTE:
 ' MSB   = R(1)/W(0) bit

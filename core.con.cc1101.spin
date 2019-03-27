@@ -13,13 +13,14 @@
 CON
 
 ' SPI Configuration
-    CPOL                        = 0
-    CLK_DELAY                   = 10
-    MOSI_BITORDER               = 5             'MSBFIRST
-    MISO_BITORDER               = 0             'MSBPRE
+    CPOL                            = 0
+    CLK_DELAY                       = 10
+    MOSI_BITORDER                   = 5             'MSBFIRST
+    MISO_BITORDER                   = 0             'MSBPRE
 
-    W                           = 0
-    R                           = 1 << 7
+    W                               = 0
+    R                               = 1 << 7
+    BURST                           = 1 << 6
 
 ' Register definitions
 '   Status byte
