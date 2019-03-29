@@ -394,6 +394,27 @@ CON
 
     MARCSTATE                       = $35 'R/O
     MARCSTATE_MASK                  = $1F
+        MARCSTATE_IDLE              = $01 'Machine states
+        MARCSTATE_VCOON_MC          = $03
+        MARCSTATE_REGON_MC          = $04
+        MARCSTATE_MANCAL            = $05
+        MARCSTATE_VCOON             = $06
+        MARCSTATE_REGON             = $07
+        MARCSTATE_STARTCAL          = $08
+        MARCSTATE_BWBOOST           = $09
+        MARCSTATE_FS_LOCK           = $0A
+        MARCSTATE_IFADCON           = $0B
+        MARCSTATE_ENDCAL            = $0C
+        MARCSTATE_RX                = $0D
+        MARCSTATE_RX_END            = $0E
+        MARCSTATE_RX_RST            = $0F
+        MARCSTATE_TXRX_SWITCH       = $10
+        MARCSTATE_RXFIFO_OVERFLOW   = $11
+        MARCSTATE_FSTXON            = $12
+        MARCSTATE_TX                = $13
+        MARCSTATE_TX_END            = $14
+        MARCSTATE_RXTX_SWITCH       = $15
+        MARCSTATE_TXFIFO_UNDERFLOW  = $16
 
     WORTIME1                        = $36 'R/O
     WORTIME0                        = $37 'R/O
