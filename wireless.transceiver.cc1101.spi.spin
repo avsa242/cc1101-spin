@@ -112,6 +112,21 @@ PUB RX
 ' Change chip state to RX (receive)
     writeRegX (core#CS_SRX, 0, 0)
 
+PUB RXData(nr_bytes, buf_addr) | tmp
+' Read data queued in the RX FIFO
+'   nr_bytes Valid values: 1..64
+'   Any other value is ignored
+'   NOTE: Ensure buffer at address buf_addr is at least as big as the number of bytes you're reading
+    case nr_bytes
+        1:
+            tmp := core#FIFO | core#R
+        2..64:
+            tmp := core#FIFO | core#R | core#BURST
+        0:
+            return
+
+    readRegX (tmp, nr_bytes, buf_addr)
+
 PUB Sleep
 ' Power down chip
     writeRegX (core#CS_SPWD, 0, 0)
@@ -128,6 +143,20 @@ PUB Status
 PUB TX
 ' Change chip state to TX (transmit)
     writeRegX (core#CS_STX, 0, 0)
+
+PUB TXData(nr_bytes, buf_addr) | tmp
+' Queue data to transmit in the TX FIFO
+'   nr_bytes Valid values: 1..64
+'   Any other value is ignored
+    case nr_bytes
+        1:
+            tmp := core#FIFO
+        2..64:
+            tmp := core#FIFO | core#BURST
+        0:
+            return
+
+    writeRegX (tmp, nr_bytes, buf_addr)
 
 PUB Version
 ' Chip version number
