@@ -16,6 +16,7 @@ CON
 VAR
 
     byte _CS, _MOSI, _MISO, _SCK
+    byte _status_byte
 
 OBJ
 
@@ -54,6 +55,11 @@ PUB PartNumber
 
     readRegX (core#PARTNUM, 1, @result)
 
+PUB SNOP
+
+    writeRegX (core#CS_SNOP, 0, 0)
+    return _status_byte
+
 PUB Version
 
     readRegX (core#VERSION, 1, @result)
@@ -61,12 +67,15 @@ PUB Version
 PUB readRegX(reg, nr_bytes, addr_buff) | i
 ' Read nr_bytes from register 'reg' to address 'addr_buff'
 
-' Handle quirky registers on a case-by-case basis
-
+    case reg
+        $30..$3D:               'Status regs
+            reg |= core#BURST   'Must set BURST mode bit to read them, else they're interpreted as
+                                '   command strobes
     outa[_CS] := 0
     spi.SHIFTOUT(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg | core#R)
     
     repeat i from 0 to nr_bytes-1
+        spi.SHIFTIN(_MISO, _SCK, core#MISO_BITORDER, 8)
         byte[addr_buff][i] := spi.SHIFTIN(_MISO, _SCK, core#MISO_BITORDER, 8)
     outa[_CS] := 1
 
@@ -77,12 +86,15 @@ PUB writeRegX(reg, nr_bytes, val) | i
 ' b6    = BURST ACCESS BIT (B)
 ' b5..0 = 6-bit ADDRESS (A5-A0)
 'IF CS PULLED LOW, WAIT UNTIL SO LOW WHEN IN SLEEP OR XOFF STATES
-
     outa[_CS] := 0
     spi.SHIFTOUT(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
 
-    repeat i from 0 to nr_bytes
-        spi.SHIFTOUT(_MOSI, _SCK, core#MISO_BITORDER, 8, val.byte[i])
+    case reg
+        $30..$3D:
+            _status_byte := spi.SHIFTIN (_MISO, _SCK, core#MISO_BITORDER, 8)
+        OTHER:
+            repeat i from 0 to nr_bytes
+                spi.SHIFTOUT(_MOSI, _SCK, core#MISO_BITORDER, 8, val.byte[i])
 
     outa[_CS] := 1
 

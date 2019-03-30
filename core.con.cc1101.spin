@@ -379,6 +379,7 @@ CON
         MASK_VCO_SEL_CAL_EN         = TEST0_MASK ^ (1 << FLD_VCO_SEL_CAL_EN)
         MASK_TEST0_LSB              = TEST0_MASK ^ (1 << FLD_TEST0_LSB)
 
+' Status Regs - set BURST bit to read
     PARTNUM                         = $30 'R/O
     VERSION                         = $31 'R/O
     FREQEST                         = $32 'R/O
@@ -458,6 +459,21 @@ CON
 
     RCCTRL0_STATUS                  = $3D 'R/O
     RCCTRL0_STATUS_MASK             = $7F
+
+' Command strobes
+    CS_SRES                         = $30
+    CS_SFSTXON                      = $31
+    CS_SXOFF                        = $32
+    CS_SCAL                         = $33
+    CS_SRX                          = $34
+    CS_STX                          = $35
+    CS_SIDLE                        = $36
+    CS_SWOR                         = $38
+    CS_SPWD                         = $39
+    CS_SFRX                         = $3A
+    CS_SFTX                         = $3B
+    CS_SWORRST                      = $3C
+    CS_SNOP                         = $3D
 
 PUB Null
 '' This is not a top-level object
