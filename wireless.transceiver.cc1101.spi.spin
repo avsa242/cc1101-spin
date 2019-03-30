@@ -42,8 +42,8 @@ PUB Startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_DELAY, SCK_CPOL): okay
 
             outa[_CS] := 1
             dira[_CS] := 1
-
-            return okay
+            if Version => $14                                   'Poll chip for version
+                return okay
 
     return FALSE                                                'If we got here, something went wrong
 
@@ -52,7 +52,8 @@ PUB Stop
     spi.stop
 
 PUB PartNumber
-
+' Part number of device
+'   Returns: $00
     readRegX (core#PARTNUM, 1, @result)
 
 PUB SNOP
@@ -61,12 +62,13 @@ PUB SNOP
     return _status_byte
 
 PUB Version
-
+' Chip version number
+'   Returns: $14
+'   NOTE: Datasheet states this value is subject to change without notice
     readRegX (core#VERSION, 1, @result)
 
 PUB readRegX(reg, nr_bytes, addr_buff) | i
 ' Read nr_bytes from register 'reg' to address 'addr_buff'
-
     case reg
         $00..$2E:
             reg |= core#R
