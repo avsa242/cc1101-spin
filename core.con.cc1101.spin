@@ -475,6 +475,7 @@ CON
     CS_SWORRST                      = $3C
     CS_SNOP                         = $3D
 
+    PATABLE                         = $3E 'PA power control
     FIFO                            = $3F 'TX and RX FIFO access (differentiated by R/W bit)
 
 PUB Null

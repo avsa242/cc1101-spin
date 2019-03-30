@@ -104,6 +104,16 @@ PUB PartNumber
 '   Returns: $00
     readRegX (core#PARTNUM, 1, @result)
 
+PUB PARead(buf_addr)
+' Read 8-byte PA table into buf_addr
+'   NOTE: Ensure buf_addr is at least 8 bytes
+    readRegX (core#PATABLE | core#BURST, 8, buf_addr)
+
+PUB PAWrite(buf_addr)
+' Write 8-byte PA table from buf_addr
+'   NOTE: Table will be written starting at index 0 from the LSB of buf_addr
+    writeRegX (core#PATABLE | core#BURST, 8, buf_addr)
+
 PUB Reset
 ' Reset the chip
     writeRegX (core#CS_SRES, 0, 0)
