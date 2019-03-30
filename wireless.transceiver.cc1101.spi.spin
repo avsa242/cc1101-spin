@@ -12,6 +12,7 @@
 
 CON
 
+    F_XOSC = 26_000_000     'CC1101 XTAL Oscillator freq, in Hz
 
 VAR
 
@@ -51,15 +52,48 @@ PUB Stop
 
     spi.stop
 
+PUB FlushRX
+' Flush receive FIFO/buffer
+    writeRegX (core#CS_SFRX, 0, 0)
+
+PUB Idle
+' Change chip state to IDLE
+    writeRegX (core#CS_SIDLE, 0, 0)
+
+PUB IntFreq(kHz) | tmp
+' Intermediate Frequency (IF), in kHz
+'   Valid values: 25..787 (result will be rounded to the nearest 5-bit result)
+'   Any other value polls the chip and returns the current setting
+    readRegX (core#FSCTRL1, 1, @tmp)
+    case kHz
+        25..787:
+            kHz := 1024/(F_XOSC/kHz)
+        OTHER:
+            return ((F_XOSC / 1024) * tmp) / 1000
+
+    writeRegX (core#FSCTRL1, 1, kHz)
+
 PUB PartNumber
 ' Part number of device
 '   Returns: $00
     readRegX (core#PARTNUM, 1, @result)
 
-PUB SNOP
+PUB RX
+' Change chip state to RX (receive)
+    writeRegX (core#CS_SRX, 0, 0)
 
+PUB SNOP
+' No-operation (primary use is to read the status byte)
     writeRegX (core#CS_SNOP, 0, 0)
     return _status_byte
+
+PUB State
+' Read state-machine register
+    readRegX (core#MARCSTATE, 1, @result)
+
+PUB TX
+' Change chip state to TX (transmit)
+    writeRegX ( core#CS_STX, 0, 0)
 
 PUB Version
 ' Chip version number
@@ -70,7 +104,7 @@ PUB Version
 PUB readRegX(reg, nr_bytes, addr_buff) | i
 ' Read nr_bytes from register 'reg' to address 'addr_buff'
     case reg
-        $00..$2E:
+        $00..$2E:                               'Config regs
             reg |= core#R
         $30..$3D:                               'Status regs
             reg |= core#R | core#BURST          'Must set BURST mode bit to read them, else they're interpreted as
@@ -93,8 +127,13 @@ PUB writeRegX(reg, nr_bytes, val) | i
     outa[_CS] := 0
     spi.SHIFTOUT(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
 
+    case nr_bytes
+        0, 1:
+        OTHER:
+            reg |= core#BURST
+
     case reg
-        $30..$3D:
+        $30..$3D:                               ' Command strobes
             _status_byte := spi.SHIFTIN (_MISO, _SCK, core#MISO_BITORDER, 8)
         OTHER:
             repeat i from 0 to nr_bytes
