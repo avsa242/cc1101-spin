@@ -1,11 +1,11 @@
 {
     --------------------------------------------
     Filename: CC1101-Test.spin
-    Author:
-    Description:
+    Author: Jesse Burt
+    Description: Test object for the cc1101 driver
     Copyright (c) 2019
     Started Mar 25, 2019
-    Updated Mar 25, 2019
+    Updated Mar 30, 2019
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -31,7 +31,7 @@ VAR
 
     byte _ser_cog
 
-PUB Main | i, j, tmp
+PUB Main
 
     Setup
     ser.CharIn

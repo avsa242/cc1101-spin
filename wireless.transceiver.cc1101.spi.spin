@@ -1,11 +1,11 @@
 {
     --------------------------------------------
     Filename: wireless.transceiver.cc1101.spi.spin
-    Author:
-    Description:
+    Author: Jesse Burt
+    Description: Driver for TI's CC1101 ISM-band transceiver
     Copyright (c) 2019
     Started Mar 25, 2019
-    Updated Mar 25, 2019
+    Updated Mar 30, 2019
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -27,7 +27,7 @@ OBJ
 PUB Null
 ''This is not a top-level object
 
-PUB Start(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN) : okay
+PUB Start(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN): okay
 
     okay := Startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, core#CLK_DELAY, core#CPOL)
 
@@ -68,14 +68,15 @@ PUB readRegX(reg, nr_bytes, addr_buff) | i
 ' Read nr_bytes from register 'reg' to address 'addr_buff'
 
     case reg
-        $30..$3D:               'Status regs
-            reg |= core#BURST   'Must set BURST mode bit to read them, else they're interpreted as
-                                '   command strobes
+        $00..$2E:
+            reg |= core#R
+        $30..$3D:                               'Status regs
+            reg |= core#R | core#BURST          'Must set BURST mode bit to read them, else they're interpreted as
+                                                '   command strobes
     outa[_CS] := 0
-    spi.SHIFTOUT(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg | core#R)
+    spi.SHIFTOUT(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
     
     repeat i from 0 to nr_bytes-1
-        spi.SHIFTIN(_MISO, _SCK, core#MISO_BITORDER, 8)
         byte[addr_buff][i] := spi.SHIFTIN(_MISO, _SCK, core#MISO_BITORDER, 8)
     outa[_CS] := 1
 
@@ -86,6 +87,7 @@ PUB writeRegX(reg, nr_bytes, val) | i
 ' b6    = BURST ACCESS BIT (B)
 ' b5..0 = 6-bit ADDRESS (A5-A0)
 'IF CS PULLED LOW, WAIT UNTIL SO LOW WHEN IN SLEEP OR XOFF STATES
+    reg |= core#W
     outa[_CS] := 0
     spi.SHIFTOUT(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
 

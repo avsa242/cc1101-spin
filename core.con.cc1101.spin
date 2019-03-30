@@ -1,11 +1,11 @@
 {
     --------------------------------------------
     Filename: core.con.cc1101.spin
-    Author:
-    Description:
+    Author: Jesse Burt
+    Description: Low-level constants
     Copyright (c) 2019
     Started Mar 25, 2019
-    Updated Mar 25, 2019
+    Updated Mar 30, 2019
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -14,7 +14,7 @@ CON
 
 ' SPI Configuration
     CPOL                            = 0
-    CLK_DELAY                       = 10
+    CLK_DELAY                       = 1
     MOSI_BITORDER                   = 5             'MSBFIRST
     MISO_BITORDER                   = 0             'MSBPRE
 
