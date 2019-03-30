@@ -52,9 +52,35 @@ PUB Stop
 
     spi.stop
 
+PUB CalFreqSynth
+' Calibrate the frequency synthesizer
+    writeRegX (core#CS_SCAL, 0, 0)
+
+PUB CrystalOff
+' Turn off crystal oscillator
+    writeRegX (core#CS_SXOFF, 0, 0)
+
+PUB FIFO
+' Returns number of bytes available in RX FIFO or free bytes in TX FIFO
+    return Status & %1111
+
 PUB FlushRX
 ' Flush receive FIFO/buffer
-    writeRegX (core#CS_SFRX, 0, 0)
+'   NOTE: Will only flush RX buffer if overflowed or if chip is idle, per datasheet recommendation
+    case _status_byte
+        core#MARCSTATE_RXFIFO_OVERFLOW, core#MARCSTATE_IDLE:
+            writeRegX (core#CS_SFRX, 0, 0)
+        OTHER:
+            return
+
+PUB FlushTX
+' Flush transmit FIFO/buffer
+'   NOTE: Will only flush TX buffer if underflowed or if chip is idle, per datasheet recommendation
+    case _status_byte
+        core#MARCSTATE_TXFIFO_UNDERFLOW, core#MARCSTATE_IDLE:
+            writeRegX (core#CS_SFTX, 0, 0)
+        OTHER:
+            return
 
 PUB Idle
 ' Change chip state to IDLE
@@ -78,28 +104,40 @@ PUB PartNumber
 '   Returns: $00
     readRegX (core#PARTNUM, 1, @result)
 
+PUB Reset
+' Reset the chip
+    writeRegX (core#CS_SRES, 0, 0)
+
 PUB RX
 ' Change chip state to RX (receive)
     writeRegX (core#CS_SRX, 0, 0)
 
-PUB SNOP
-' No-operation (primary use is to read the status byte)
-    writeRegX (core#CS_SNOP, 0, 0)
-    return _status_byte
+PUB Sleep
+' Power down chip
+    writeRegX (core#CS_SPWD, 0, 0)
 
 PUB State
 ' Read state-machine register
     readRegX (core#MARCSTATE, 1, @result)
 
+PUB Status
+' Read the status byte
+    writeRegX (core#CS_SNOP, 0, 0)
+    return _status_byte
+
 PUB TX
 ' Change chip state to TX (transmit)
-    writeRegX ( core#CS_STX, 0, 0)
+    writeRegX (core#CS_STX, 0, 0)
 
 PUB Version
 ' Chip version number
 '   Returns: $14
 '   NOTE: Datasheet states this value is subject to change without notice
     readRegX (core#VERSION, 1, @result)
+
+PUB WOR
+' Change chip state to WOR (Wake-on-Radio)
+    writeRegX (core#CS_SWOR, 0, 0)
 
 PUB readRegX(reg, nr_bytes, addr_buff) | i
 ' Read nr_bytes from register 'reg' to address 'addr_buff'
@@ -111,7 +149,7 @@ PUB readRegX(reg, nr_bytes, addr_buff) | i
                                                 '   command strobes
     outa[_CS] := 0
     spi.SHIFTOUT(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
-    
+
     repeat i from 0 to nr_bytes-1
         byte[addr_buff][i] := spi.SHIFTIN(_MISO, _SCK, core#MISO_BITORDER, 8)
     outa[_CS] := 1
@@ -126,6 +164,7 @@ PUB writeRegX(reg, nr_bytes, val) | i
     reg |= core#W
     outa[_CS] := 0
     spi.SHIFTOUT(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
+    _status_byte := spi.SHIFTIN (_MISO, _SCK, core#MISO_BITORDER, 8)
 
     case nr_bytes
         0, 1:
@@ -134,7 +173,6 @@ PUB writeRegX(reg, nr_bytes, val) | i
 
     case reg
         $30..$3D:                               ' Command strobes
-            _status_byte := spi.SHIFTIN (_MISO, _SCK, core#MISO_BITORDER, 8)
         OTHER:
             repeat i from 0 to nr_bytes
                 spi.SHIFTOUT(_MOSI, _SCK, core#MISO_BITORDER, 8, val.byte[i])
