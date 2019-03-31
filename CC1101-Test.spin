@@ -40,26 +40,37 @@ PUB Main
 
     Setup
 
-    DATARATE (1)
-    RXBW (1)
+    rf.Idle
+
+    AUTOCAL (1)
+    DRATE (1)
+    CHANBW (1)
 
     Flash (cfg#LED1)
 
-PUB DATARATE(reps) | tmp, read
+PUB AUTOCAL(reps) | tmp, read
+
+    repeat reps
+        repeat tmp from 0 to 3
+            rf.AutoCal (tmp)
+            read := rf.AutoCal (-2)
+            Message (string("FS_AUTOCAL"), tmp, read)
+
+PUB DRATE(reps) | tmp, read
 
     repeat reps
         repeat tmp from 1 to 11
             rf.DataRate (lookup(tmp: 1000, 1200, 2400, 4800, 9600, 19_600, 38_400, 76_800, 153_600, 250_000, 500_000))
             read := rf.DataRate (-2)
-            Message (string("Data rate"), lookup(tmp: 1000, 1200, 2400, 4800, 9600, 19_600, 38_400, 76_800, 153_600, 250_000, 500_000), read)
+            Message (string("DRATE"), lookup(tmp: 1000, 1200, 2400, 4800, 9600, 19_600, 38_400, 76_800, 153_600, 250_000, 500_000), read)
 
-PUB RXBW(reps) | tmp, read
+PUB CHANBW(reps) | tmp, read
 
     repeat reps
         repeat tmp from 1 to 16
             rf.RXBandwidth (lookup(tmp: 812, 650, 541, 464, 406, 325, 270, 232, 203, 162, 135, 116, 102, 81, 68, 58))
             read := rf.RXBandwidth (-2)
-            Message (string("RX Bandwidth"), lookup(tmp: 812, 650, 541, 464, 406, 325, 270, 232, 203, 162, 135, 116, 102, 81, 68, 58), read)
+            Message (string("CHANBW"), lookup(tmp: 812, 650, 541, 464, 406, 325, 270, 232, 203, 162, 135, 116, 102, 81, 68, 58), read)
 
 PUB Message(field, arg1, arg2)
 

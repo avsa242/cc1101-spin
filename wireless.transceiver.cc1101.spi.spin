@@ -52,6 +52,25 @@ PUB Stop
 
     spi.stop
 
+PUB AutoCal(when) | tmp
+' When to perform auto-calibration
+'   Valid values:
+'       NEVER (0) - Never (manually calibrate)
+'       IDLE_RXTX (1) - When transitioning from IDLE to RX/TX
+'       RXTX_IDLE (2) - When transitioning from RX/TX to IDLE
+'       RXTX_IDLE4 (3) - Every 4th time when transitioning from RX/TX to IDLE (power-saving)
+    readRegX (core#MCSM0, 1, @tmp)'reg, nr_bytes, addr_buff)
+    case when
+        0..3:
+            when := when << core#FLD_FS_AUTOCAL
+        OTHER:
+            result := (tmp >> core#FLD_FS_AUTOCAL) & core#BITS_FS_AUTOCAL
+            return result
+
+    tmp &= core#MASK_FS_AUTOCAL
+    tmp := (tmp | when)
+    writeRegX (core#MCSM0, 1, @tmp)'reg, nr_bytes, buf_addr)
+
 PUB CalFreqSynth
 ' Calibrate the frequency synthesizer
     writeRegX (core#CS_SCAL, 0, 0)
