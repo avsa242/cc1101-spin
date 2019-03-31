@@ -188,6 +188,10 @@ PUB FlushTX
         OTHER:
             return
 
+PUB FSTX
+' Enable frequency synthesizer and calibrate
+    writeRegX (core#CS_SFSTXON, 0, 0)
+
 PUB Idle
 ' Change chip state to IDLE
     writeRegX (core#CS_SIDLE, 0, 0)
