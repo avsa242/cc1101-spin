@@ -24,6 +24,11 @@ CON
     RXOFF_TX        = 2
     RXOFF_RX        = 3
 
+    TXOFF_IDLE      = 0
+    TXOFF_FSTXON    = 1
+    TXOFF_TX        = 2
+    TXOFF_RX        = 3
+
 VAR
 
     byte _CS, _MOSI, _MISO, _SCK
@@ -305,6 +310,26 @@ PUB TXData(nr_bytes, buf_addr) | tmp
             return
 
     writeRegX (tmp, nr_bytes, buf_addr)
+
+PUB TXOff(next_state) | tmp
+' Defines the state the radio transitions to after a packet is successfully transmitted
+'   Valid values:
+'       TXOFF_IDLE (0) - Idle state
+'       TXOFF_FSTXON (1) - Turn frequency synth on and ready at TX freq. To transmit, call TX
+'       TXOFF_TX (2) - Start sending preamble
+'       TXOFF_RX (3) - Wait for packets (RX)
+'   Any other value polls the chip and returns the current setting
+    readRegX (core#MCSM1, 1, @tmp)
+    case next_state
+        0..3:
+            next_state := next_state << core#FLD_TXOFF_MODE
+        OTHER:
+            result := (tmp >> core#FLD_TXOFF_MODE) & core#BITS_TXOFF_MODE
+            return result
+
+    tmp &= core#MASK_TXOFF_MODE
+    tmp := (tmp | next_state)
+    writeRegX (core#MCSM1, 1, @tmp)
 
 PUB Version
 ' Chip version number
