@@ -60,6 +60,28 @@ PUB CrystalOff
 ' Turn off crystal oscillator
     writeRegX (core#CS_SXOFF, 0, 0)
 
+PUB DataRate(Baud) | tmp, tmp_e, tmp_m, DRATE_E, DRATE_M
+' Set on-air data rate
+    tmp := tmp_e := tmp_m := DRATE_E := DRATE_M := 0
+
+    readRegX (core#MDMCFG4, 1, @tmp_e)
+    readRegX (core#MDMCFG3, 1, @tmp_m)
+    case Baud := lookdown(Baud: 1000, 1200, 2400, 4800, 9600, 19_600, 38_400, 76_800, 153_600, 250_000, 500_000)
+        1..11:
+            DRATE_E := lookup(Baud: $05, $05, $06, $07, $08, $09, $0A, $0B, $0C, $0D, $0E) & core#BITS_DRATE_E
+            DRATE_M := lookup(Baud: $42, $83, $83, $83, $83, $8B, $83, $83, $83, $3B, $3B) & core#MDMCFG3_MASK
+        OTHER:
+            tmp_e &= core#BITS_DRATE_E
+            tmp := (tmp_e << 8) | tmp_m
+            result := lookdown(tmp: $0542, $0583, $0683, $0783, $0883, $098B, $0A83, $0B83, $0C83, $0D3B, $0E3B)
+            return lookup(result: 1000, 1200, 2400, 4800, 9600, 19_600, 38_400, 76_800, 153_600, 250_000, 500_000)
+
+    tmp_e &= core#MASK_DRATE_E
+    tmp_e := (tmp_e | DRATE_E)
+
+    writeRegX (core#MDMCFG4, 1, @tmp_e)
+    writeRegX (core#MDMCFG3, 1, @DRATE_M)
+
 PUB FIFO
 ' Returns number of bytes available in RX FIFO or free bytes in TX FIFO
     return Status & %1111
@@ -193,30 +215,37 @@ PUB readRegX(reg, nr_bytes, addr_buff) | i
         byte[addr_buff][i] := spi.SHIFTIN(_MISO, _SCK, core#MISO_BITORDER, 8)
     outa[_CS] := 1
 
-PUB writeRegX(reg, nr_bytes, val) | i
+PUB writeRegX(reg, nr_bytes, buf_addr) | tmp
 ' Write nr_bytes to register 'reg' stored in val
 'HEADER BYTE:
 ' MSB   = R(1)/W(0) bit
 ' b6    = BURST ACCESS BIT (B)
 ' b5..0 = 6-bit ADDRESS (A5-A0)
 'IF CS PULLED LOW, WAIT UNTIL SO LOW WHEN IN SLEEP OR XOFF STATES
-    reg |= core#W
-    outa[_CS] := 0
-    spi.SHIFTOUT(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
-    _status_byte := spi.SHIFTIN (_MISO, _SCK, core#MISO_BITORDER, 8)
-
-    case nr_bytes
-        0, 1:
-        OTHER:
-            reg |= core#BURST
 
     case reg
-        $30..$3D:                               ' Command strobes
-        OTHER:
-            repeat i from 0 to nr_bytes
-                spi.SHIFTOUT(_MOSI, _SCK, core#MISO_BITORDER, 8, val.byte[i])
+        $00..$2E:                               ' R/W regs
+            case nr_bytes
+                0:                              ' Invalid nr_bytes - ignore
+                    return
+                1:
+                OTHER:
+                    reg |= core#BURST
 
-    outa[_CS] := 1
+            outa[_CS] := 0
+            spi.SHIFTOUT(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
+            repeat tmp from 0 to nr_bytes-1
+                spi.SHIFTOUT(_MOSI, _SCK, core#MOSI_BITORDER, 8, byte[buf_addr][tmp])
+            outa[_CS] := 1
+
+        $30..$3D:                               ' Command strobes
+            outa[_CS] := 0
+            spi.SHIFTOUT(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
+            _status_byte := spi.SHIFTIN (_MISO, _SCK, core#MISO_BITORDER, 8)
+            outa[_CS] := 1
+
+        OTHER:                                  ' Invalid reg - ignore
+            return
 
 DAT
 {

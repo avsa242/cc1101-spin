@@ -136,9 +136,9 @@ CON
         BITS_DRATE_E                = %1111
         MASK_CHANBW_E               = MDMCFG4_MASK ^ (BITS_CHANBW_E << FLD_CHANBW_E)
         MASK_CHANBW_M               = MDMCFG4_MASK ^ (BITS_CHANBW_M << FLD_CHANBW_M)
-        MASK_DRATE_E                = MDMCFG4_MASK ^ (BITS_DRATE_E << FLD_DRATE_E)
+        MASK_DRATE_E                = MDMCFG4_MASK ^ (BITS_DRATE_E)
 
-    MDMCFG3                         = $11
+    MDMCFG3                         = $11 ' DRATE_M
     MDMCFG3_MASK                    = $FF
 
     MDMCFG2                         = $12
