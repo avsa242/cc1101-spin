@@ -110,21 +110,23 @@ CON
     CHANNR                          = $0A
     CHANNR_MASK                     = $FF
 
-    FSCTRL1                         = $0B   'IF freq
+    FSCTRL1                         = $0B       'IF freq
     FSCTRL1_MASK                    = $1F
 
-    FSCTRL0                         = $0C   'Freq offset
+    FSCTRL0                         = $0C       'Freq offset
     FSCTRL0_MASK                    = $FF
 
-    FREQ2                           = $0D   'Center freq MSB
+    FREQ2                           = $0D       'Center freq MSB
     FREQ2_MASK_R                    = $FF
-    FREQ2_MASK_W                    = $3F   'BITS 6..7 R/O - always 0
+    FREQ2_MASK_W                    = $3F       'BITS 6..7 R/O - always 0
 
-    FREQ1                           = $0E   'Center freq middle byte
+    FREQ1                           = $0E       'Center freq middle byte
     FREQ1_MASK                      = $FF
 
-    FREQ0                           = $0F   'Center freq LSB
+    FREQ0                           = $0F       'Center freq LSB
     FREQ0_MASK                      = $FF
+
+    FREQ_MASK                       = $1F_FF_FF 'Pseudo field, for FREQ2..FREQ0
 
     MDMCFG4                         = $10
     MDMCFG4_MASK                    = $FF

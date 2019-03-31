@@ -85,6 +85,54 @@ PUB CalFreqSynth
 ' Calibrate the frequency synthesizer
     writeRegX (core#CS_SCAL, 0, 0)
 
+PUB CarrierFreq(Hz) | tmp_msb, tmp_mb, tmp_lsb
+' Set carrier/center frequency, in Hz
+'   Valid values:
+'       300_000_000..348_000_000, 387_000_000..464_000_000, 779_000_000..928_000_000
+'   Any other value polls the chip and returns the current setting
+'   NOTE: The actual set frequency has a resolution of fXOSC/2^16 (i.e., approx 396Hz)
+{    readRegX (core#FREQ2, 1, @tmp_msb)
+    readRegX (core#FREQ1, 1, @tmp_mb)
+    readRegX (core#FREQ0, 1, @tmp_lsb)
+    case Hz
+        300_000_000..348_000_000, 387_000_000..464_000_000, 779_000_000..928_000_000:
+            Hz := 65536 / (F_XOSC / Hz)
+        OTHER:
+            result := tmp & core#FREQ_MASK
+            return (F_XOSC / 65536) * tmp
+
+    tmp_lsb := Hz.byte[0]
+    tmp_mb := Hz.byte[1]
+    tmp_msb := Hz.byte[2]
+
+    writeRegX (core#FREQ0, 1, byte[tmp][0])
+    writeRegX (core#FREQ1, 1, byte[tmp][1])
+    writeRegX (core#FREQ2, 1, byte[tmp][2])
+}
+    case Hz
+        315:
+            tmp_msb := $0C
+            tmp_mb := $1D
+            tmp_lsb := $8A
+            writeRegX (core#FREQ0, 1, @tmp_lsb)
+            writeRegX (core#FREQ1, 1, @tmp_mb)
+            writeRegX (core#FREQ2, 1, @tmp_msb)
+
+        433:
+            tmp_msb := $10
+            tmp_mb := $B0
+            tmp_lsb := $72
+            writeRegX (core#FREQ0, 1, @tmp_lsb)
+            writeRegX (core#FREQ1, 1, @tmp_mb)
+            writeRegX (core#FREQ2, 1, @tmp_msb)
+        868:
+            tmp_msb := $21
+            tmp_mb := $62
+            tmp_lsb := $76
+            writeRegX (core#FREQ0, 1, @tmp_lsb)
+            writeRegX (core#FREQ1, 1, @tmp_mb)
+            writeRegX (core#FREQ2, 1, @tmp_msb)
+
 PUB CrystalOff
 ' Turn off crystal oscillator
     writeRegX (core#CS_SXOFF, 0, 0)
@@ -310,6 +358,13 @@ PUB writeRegX(reg, nr_bytes, buf_addr) | tmp
             outa[_CS] := 0
             spi.SHIFTOUT(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
             _status_byte := spi.SHIFTIN (_MISO, _SCK, core#MISO_BITORDER, 8)
+            outa[_CS] := 1
+
+        $3F:                                    ' FIFO
+            outa[_CS] := 0
+            spi.SHIFTOUT(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
+            repeat tmp from 0 to nr_bytes-1
+                spi.SHIFTOUT(_MOSI, _SCK, core#MOSI_BITORDER, 8, byte[buf_addr][tmp])
             outa[_CS] := 1
 
         OTHER:                                  ' Invalid reg - ignore
