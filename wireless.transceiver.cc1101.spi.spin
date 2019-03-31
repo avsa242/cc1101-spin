@@ -225,9 +225,8 @@ PUB PAWrite(buf_addr)
     writeRegX (core#PATABLE | core#BURST, 8, buf_addr)
 
 PUB Preamble(bytes) | tmp
-' Short descr
-'   Valid values: LIST
-'       LIST
+' Set number of preamble bytes
+'   Valid values: 2, 3, 4, 6, 8, 12, 16, 24
 '   Any other value polls the chip and returns the current setting
     readRegX (core#MDMCFG1, 1, @tmp)
     case bytes
