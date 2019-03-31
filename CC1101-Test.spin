@@ -42,11 +42,20 @@ PUB Main
 
     rf.Idle
 
+    RXOFF_MODE (1)
     AUTOCAL (1)
     DRATE (1)
     CHANBW (1)
 
     Flash (cfg#LED1)
+
+PUB RXOFF_MODE(reps) | tmp, read
+
+    repeat reps
+        repeat tmp from 0 to 3
+            rf.RXOff (tmp)
+            read := rf.RXOff (-2)
+            Message (string("RXOFF_MODE"), tmp, read)
 
 PUB AUTOCAL(reps) | tmp, read
 
