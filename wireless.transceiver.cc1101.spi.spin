@@ -61,7 +61,9 @@ PUB CrystalOff
     writeRegX (core#CS_SXOFF, 0, 0)
 
 PUB DataRate(Baud) | tmp, tmp_e, tmp_m, DRATE_E, DRATE_M
-' Set on-air data rate
+' Set on-air data rate, in bps
+'   Valid values: 1000, 1200, 2400, 4800, 9600, 19_600, 38_400, 76_800, 153_600, 250_000, 500_000
+'   Any other value polls the chip and returns the current setting
     tmp := tmp_e := tmp_m := DRATE_E := DRATE_M := 0
 
     readRegX (core#MDMCFG4, 1, @tmp_e)
@@ -143,6 +145,23 @@ PUB Reset
 PUB RX
 ' Change chip state to RX (receive)
     writeRegX (core#CS_SRX, 0, 0)
+
+PUB RXBandwidth(kHz) | tmp
+' Set receiver channel filter bandwidth, in kHz
+'   Valid values: 812, 650, 541, 464, 406, 325, 270, 232, 203, 162, 135, 116, 102, 81, 68, 58
+'   Any other value polls the chip and returns the current setting
+    readRegX (core#MDMCFG4, 1, @tmp)
+    case kHz := lookdown(kHz: 812, 650, 541, 464, 406, 325, 270, 232, 203, 162, 135, 116, 102, 81, 68, 58)
+        1..16:
+            kHz := (kHz-1) << core#FLD_CHANBW
+'            return kHz
+        OTHER:
+            result := ((tmp >> core#FLD_CHANBW) & core#BITS_CHANBW)+1
+            return lookup(result: 812, 650, 541, 464, 406, 325, 270, 232, 203, 162, 135, 116, 102, 81, 68, 58)
+
+    tmp &= core#MASK_CHANBW
+    tmp := (tmp | kHz)
+    writeRegX ( core#MDMCFG4, 1, @tmp)'reg, nr_bytes, buf_addr)
 
 PUB RXData(nr_bytes, buf_addr) | tmp
 ' Read data queued in the RX FIFO

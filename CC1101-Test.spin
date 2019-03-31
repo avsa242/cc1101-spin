@@ -20,6 +20,11 @@ CON
     MOSI_PIN    = 9
     MISO_PIN    = 10
 
+    COL_REG     = 0
+    COL_SET     = 12
+    COL_READ    = 24
+    COL_PF      = 40
+
 OBJ
 
     cfg : "core.con.boardcfg.flip"
@@ -34,9 +39,51 @@ VAR
 PUB Main
 
     Setup
-    ser.CharIn
+
+    DATARATE (1)
+    RXBW (1)
 
     Flash (cfg#LED1)
+
+PUB DATARATE(reps) | tmp, read
+
+    repeat reps
+        repeat tmp from 1 to 11
+            rf.DataRate (lookup(tmp: 1000, 1200, 2400, 4800, 9600, 19_600, 38_400, 76_800, 153_600, 250_000, 500_000))
+            read := rf.DataRate (-2)
+            Message (string("Data rate"), lookup(tmp: 1000, 1200, 2400, 4800, 9600, 19_600, 38_400, 76_800, 153_600, 250_000, 500_000), read)
+
+PUB RXBW(reps) | tmp, read
+
+    repeat reps
+        repeat tmp from 1 to 16
+            rf.RXBandwidth (lookup(tmp: 812, 650, 541, 464, 406, 325, 270, 232, 203, 162, 135, 116, 102, 81, 68, 58))
+            read := rf.RXBandwidth (-2)
+            Message (string("RX Bandwidth"), lookup(tmp: 812, 650, 541, 464, 406, 325, 270, 232, 203, 162, 135, 116, 102, 81, 68, 58), read)
+
+PUB Message(field, arg1, arg2)
+
+    ser.PositionX ( COL_REG)
+    ser.Str (field)
+
+    ser.PositionX ( COL_SET)
+    ser.Str (string("SET: "))
+    ser.Dec (arg1)
+
+    ser.PositionX ( COL_READ)
+    ser.Str (string("   READ: "))
+    ser.Dec (arg2)
+
+    ser.PositionX (COL_PF)
+    PassFail (arg1 == arg2)
+    ser.NewLine
+
+PUB PassFail(num)
+
+    case num
+        0: ser.Str (string("FAIL"))
+        -1: ser.Str (string("PASS"))
+        OTHER: ser.Str (string("???"))
 
 PUB Setup
 
