@@ -317,19 +317,11 @@ PUB TX
 ' Change chip state to TX (transmit)
     writeRegX (core#CS_STX, 0, 0)
 
-PUB TXData(nr_bytes, buf_addr) | tmp
+PUB TXData(nr_bytes, buf_addr)
 ' Queue data to transmit in the TX FIFO
 '   nr_bytes Valid values: 1..64
 '   Any other value is ignored
-    case nr_bytes
-        1:
-            tmp := core#FIFO
-        2..64:
-            tmp := core#FIFO | core#BURST
-        0:
-            return
-
-    writeRegX (tmp, nr_bytes, buf_addr)
+    writeRegX (core#FIFO, nr_bytes, buf_addr)
 
 PUB TXOff(next_state) | tmp
 ' Defines the state the radio transitions to after a packet is successfully transmitted
@@ -406,6 +398,13 @@ PUB writeRegX(reg, nr_bytes, buf_addr) | tmp
             outa[_CS] := 1
 
         $3F:                                    ' FIFO
+            case nr_bytes
+                1:
+                2..64:
+                    reg |= core#BURST
+                0:
+                    return
+
             outa[_CS] := 0
             spi.SHIFTOUT(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
             repeat tmp from 0 to nr_bytes-1
