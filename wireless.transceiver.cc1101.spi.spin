@@ -29,6 +29,12 @@ CON
     TXOFF_TX        = 2
     TXOFF_RX        = 3
 
+    FSK2            = %000
+    GFSK            = %001
+    ASKOOK          = %011
+    FSK4            = %100
+    MSK             = %111
+
 VAR
 
     byte _CS, _MOSI, _MISO, _SCK
@@ -208,6 +214,27 @@ PUB IntFreq(kHz) | tmp
             return ((F_XOSC / 1024) * tmp) / 1000
 
     writeRegX (core#FSCTRL1, 1, kHz)
+
+PUB Modulation(format) | tmp
+' Set modulation of transmitted or expected signal
+'   Valid values:
+'       FSK2 (%000): 2-level or binary Frequency Shift-Keyed
+'       GFSK (%001): Gaussian FSK
+'       ASKOOK (%011): Amplitude Shift-Keyed or On Off-Keyed
+'       FSK4 (%100): 4-level FSK
+'       MSK (%111): Minimum Shift-Keyed
+'   Any other value polls the chip and returns the current setting
+'   NOTE: MSK supported only at baud rates greater than 26k
+    readRegX (core#MDMCFG2, 1, @tmp)
+    case format
+        FSK2, GFSK, ASKOOK, FSK4, MSK:
+            format := format << core#FLD_MOD_FORMAT
+        OTHER:
+            return (tmp >> core#FLD_MOD_FORMAT) & core#BITS_MOD_FORMAT
+
+    tmp &= core#MASK_MOD_FORMAT
+    tmp := (tmp | format)
+    writeRegX (core#MDMCFG2, 1, @tmp)
 
 PUB PartNumber
 ' Part number of device
