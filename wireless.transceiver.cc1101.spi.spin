@@ -263,22 +263,14 @@ PUB RXBandwidth(kHz) | tmp
 
     tmp &= core#MASK_CHANBW
     tmp := (tmp | kHz)
-    writeRegX ( core#MDMCFG4, 1, @tmp)'reg, nr_bytes, buf_addr)
+    writeRegX (core#MDMCFG4, 1, @tmp)
 
 PUB RXData(nr_bytes, buf_addr) | tmp
 ' Read data queued in the RX FIFO
 '   nr_bytes Valid values: 1..64
 '   Any other value is ignored
 '   NOTE: Ensure buffer at address buf_addr is at least as big as the number of bytes you're reading
-    case nr_bytes
-        1:
-            tmp := core#FIFO | core#R
-        2..64:
-            tmp := core#FIFO | core#R | core#BURST
-        0:
-            return
-
-    readRegX (tmp, nr_bytes, buf_addr)
+    readRegX (core#FIFO, nr_bytes, buf_addr)
 
 PUB RXOff(next_state) | tmp
 ' Defines the state the radio transitions to after a packet is successfully received
@@ -356,11 +348,18 @@ PUB WOR
 PUB readRegX(reg, nr_bytes, addr_buff) | i
 ' Read nr_bytes from register 'reg' to address 'addr_buff'
     case reg
-        $00..$2E:                               'Config regs
-            reg |= core#R
-        $30..$3D:                               'Status regs
-            reg |= core#R | core#BURST          'Must set BURST mode bit to read them, else they're interpreted as
-                                                '   command strobes
+        $00..$2E:                               ' Config regs
+        $30..$3D:                               ' Status regs
+            reg |= core#BURST                   '   Must set BURST mode bit to read them, else they're interpreted as command strobes
+        $3F:                                    ' FIFO
+            case nr_bytes
+                1:
+                2..64:
+                    reg |= core#BURST
+                0:
+                    return
+    reg |= core#R
+
     outa[_CS] := 0
     spi.SHIFTOUT(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
 
