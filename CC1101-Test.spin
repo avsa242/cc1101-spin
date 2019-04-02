@@ -5,7 +5,7 @@
     Description: Test object for the cc1101 driver
     Copyright (c) 2019
     Started Mar 25, 2019
-    Updated Mar 30, 2019
+    Updated Apr 2, 2019
     See end of file for terms of use.
     --------------------------------------------
 }

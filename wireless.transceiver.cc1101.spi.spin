@@ -5,7 +5,7 @@
     Description: Driver for TI's CC1101 ISM-band transceiver
     Copyright (c) 2019
     Started Mar 25, 2019
-    Updated Mar 30, 2019
+    Updated Apr 2, 2019
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -397,6 +397,18 @@ PUB Status
     writeRegX (core#CS_SNOP, 0, 0)
     return _status_byte
 
+PUB SyncWord(sync_word) | tmp
+' Set transmitted (TX) or expected (RX) sync word
+'   Valid values: $0000..$FFFF
+'   Any other value polls the chip and returns the current setting
+    readRegX (core#SYNC1, 2, @tmp)
+    case sync_word
+        $0000..$FFFF:
+        OTHER:
+            return tmp
+
+    writeRegX (core#SYNC1, 2, @sync_word)
+
 PUB TX
 ' Change chip state to TX (transmit)
     writeRegX (core#CS_STX, 0, 0)
@@ -441,6 +453,12 @@ PUB readRegX(reg, nr_bytes, addr_buff) | i
 ' Read nr_bytes from register 'reg' to address 'addr_buff'
     case reg
         $00..$2E:                               ' Config regs
+            case nr_bytes
+                1:
+                2..64:
+                    reg |= core#BURST
+                0:
+                    return
         $30..$3D:                               ' Status regs
             reg |= core#BURST                   '   Must set BURST mode bit to read them, else they're interpreted as command strobes
         $3F:                                    ' FIFO
