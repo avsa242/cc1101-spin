@@ -14,26 +14,40 @@ CON
 
     F_XOSC          = 26_000_000     'CC1101 XTAL Oscillator freq, in Hz
 
+' Auto-calibration state
     NEVER           = 0
     IDLE_RXTX       = 1
     RXTX_IDLE       = 2
     RXTX_IDLE4      = 3
 
+' RXOff states
     RXOFF_IDLE      = 0
     RXOFF_FSTXON    = 1
     RXOFF_TX        = 2
     RXOFF_RX        = 3
 
+' TXOff states
     TXOFF_IDLE      = 0
     TXOFF_FSTXON    = 1
     TXOFF_TX        = 2
     TXOFF_RX        = 3
 
+' Modulation formats
     FSK2            = %000
     GFSK            = %001
     ASKOOK          = %011
     FSK4            = %100
     MSK             = %111
+
+' CC1101 I/O pin output signals
+    IO_RXOVERFLOW   = $04
+    IO_TXUNDERFLOW  = $05
+    IO_CARRIER      = $0E
+    IO_CHIP_RDYn    = $29
+    IO_XOSC_STABLE  = $2B
+    IO_HI_Z         = $2E
+    IO_CLK_XODIV1   = $30
+    IO_CLK_XODIV192 = $3F
 
 VAR
 
@@ -197,6 +211,57 @@ PUB FlushTX
 PUB FSTX
 ' Enable frequency synthesizer and calibrate
     writeRegX (core#CS_SFSTXON, 0, 0)
+
+PUB GDO0(config) | tmp
+' Configure test signal output on GD0 pin
+'   Valid values: $00..$0F, $16..$17, $1B..$1D, $24..$39, $41, $43, $46..$3F
+'   Any other value polls the chip and returns the current setting
+'   NOTE: The default setting is IO_CLK_XODIV192, which outputs the CC1101's XO clock, divided by 192 on the pin.
+'       TI recommends the clock outputs be disabled when the radio is active, for best performance.
+'       Only one IO pin at a time can be configured as a clock output.
+    readRegX (core#IOCFG0, 1, @tmp)
+    case config
+        $00..$0F, $16..$17, $1B..$1D, $24..$27, $29, $2B, $2E..$3F:
+            config &= core#BITS_GDO0_CFG
+        OTHER:
+            return tmp & core#BITS_GDO0_CFG
+
+    tmp &= core#MASK_GDO0_CFG
+    tmp := (tmp | config)
+    writeRegX (core#IOCFG0, 1, @tmp)
+
+PUB GDO1(config) | tmp
+' Configure test signal output on GD0 pin
+'   Valid values: $00..$0F, $16..$17, $1B..$1D, $24..$39, $41, $43, $46..$3F
+'   Any other value polls the chip and returns the current setting
+'   NOTE: This pin is shared with the SPI signal SO, and is valid only when CS is high.
+'       The default setting is IO_HI_Z ($2E): Hi-Z/High-impedance/Tri-state
+    readRegX (core#IOCFG0, 1, @tmp)
+    case config
+        $00..$0F, $16..$17, $1B..$1D, $24..$27, $29, $2B, $2E..$3F:
+            config &= core#BITS_GDO1_CFG
+        OTHER:
+            return tmp & core#BITS_GDO1_CFG
+
+    tmp &= core#MASK_GDO1_CFG
+    tmp := (tmp | config)
+    writeRegX (core#IOCFG1, 1, @tmp)
+
+PUB GDO2(config) | tmp
+' Configure test signal output on GD0 pin
+'   Valid values: $00..$0F, $16..$17, $1B..$1D, $24..$39, $41, $43, $46..$3F
+'   Any other value polls the chip and returns the current setting
+'   NOTE: The default setting is IO_CHIP_RDYn
+    readRegX (core#IOCFG0, 1, @tmp)
+    case config
+        $00..$0F, $16..$17, $1B..$1D, $24..$27, $29, $2B, $2E..$3F:
+            config &= core#BITS_GDO2_CFG
+        OTHER:
+            return tmp & core#BITS_GDO2_CFG
+
+    tmp &= core#MASK_GDO2_CFG
+    tmp := (tmp | config)
+    writeRegX (core#IOCFG2, 1, @tmp)
 
 PUB Idle
 ' Change chip state to IDLE

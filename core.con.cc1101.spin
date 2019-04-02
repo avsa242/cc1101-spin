@@ -36,7 +36,7 @@ CON
         FLD_GDO2_CFG                = 0
         BITS_GDO2_CFG               = %111111
         MASK_GDO2_INV               = IOCFG2_MASK ^ (1 << FLD_GDO2_INV)
-        MASK_GDO2_CFG               = IOCFG2_MASK ^ (1 << FLD_GDO2_CFG)
+        MASK_GDO2_CFG               = IOCFG2_MASK ^ (BITS_GDO2_CFG << FLD_GDO2_CFG)
 
     IOCFG1                          = $01
     IOCFG1_MASK                     = $FF
@@ -46,7 +46,7 @@ CON
         BITS_GDO1_CFG               = %111111
         MASK_GDO1_DS                = IOCFG1_MASK ^ (1 << FLD_GDO1_DS)
         MASK_GDO1_INV               = IOCFG1_MASK ^ (1 << FLD_GDO1_INV)
-        MASK_GDO1_CFG               = IOCFG1_MASK ^ (1 << FLD_GDO1_CFG)
+        MASK_GDO1_CFG               = IOCFG1_MASK ^ (BITS_GDO1_CFG << FLD_GDO1_CFG)
 
     IOCFG0                          = $02
     IOCFG0_MASK                     = $FF
@@ -56,7 +56,7 @@ CON
         BITS_GDO0_CFG               = %111111
         MASK_TEMP_SENSOR_ENABLE     = IOCFG0_MASK ^ (1 << FLD_TEMP_SENSOR_ENABLE)
         MASK_GDO0_INV               = IOCFG0_MASK ^ (1 << FLD_GDO0_INV)
-        MASK_GDO0_CFG               = IOCFG0_MASK ^ (1 << FLD_GDO0_CFG)
+        MASK_GDO0_CFG               = IOCFG0_MASK ^ (BITS_GDO0_CFG << FLD_GDO0_CFG)
 
     FIFOTHR                         = $03
     FIFOTHR_MASK                    = $7F
