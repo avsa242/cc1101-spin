@@ -216,6 +216,22 @@ PUB DataRate(Baud) | tmp, tmp_e, tmp_m, DRATE_E, DRATE_M
     writeRegX (core#MDMCFG4, 1, @tmp_e)
     writeRegX (core#MDMCFG3, 1, @DRATE_M)
 
+PUB DCBlock(enabled) | tmp
+' Enable digital DC blocking filter (before demod)
+'   Valid values: TRUE (-1 or 1), FALSE
+'   Any other value polls the chip and returns the current setting
+    readRegX (core#MDMCFG2, 1, @tmp)
+    case enabled := ||enabled
+        0, 1:
+            enabled := ((enabled ^ 1) << core#FLD_DEM_DCFILT_OFF)
+        OTHER:
+            result := (((tmp >> core#FLD_DEM_DCFILT_OFF) & %1) ^ 1) * TRUE
+            return result
+
+    tmp &= core#MASK_DEM_DCFILT_OFF
+    tmp := (tmp | enabled)
+    writeRegX (core#MDMCFG2, 1, @tmp)
+
 PUB FIFO
 ' Returns number of bytes available in RX FIFO or free bytes in TX FIFO
     return Status & %1111
@@ -378,7 +394,6 @@ PUB RXBandwidth(kHz) | tmp
     case kHz := lookdown(kHz: 812, 650, 541, 464, 406, 325, 270, 232, 203, 162, 135, 116, 102, 81, 68, 58)
         1..16:
             kHz := (kHz-1) << core#FLD_CHANBW
-'            return kHz
         OTHER:
             result := ((tmp >> core#FLD_CHANBW) & core#BITS_CHANBW)+1
             return lookup(result: 812, 650, 541, 464, 406, 325, 270, 232, 203, 162, 135, 116, 102, 81, 68, 58)
