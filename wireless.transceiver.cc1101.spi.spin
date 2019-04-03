@@ -173,6 +173,21 @@ PUB CarrierFreq(Hz) | tmp_msb, tmp_mb, tmp_lsb
             writeRegX (core#FREQ1, 1, @tmp_mb)
             writeRegX (core#FREQ2, 1, @tmp_msb)
 
+PUB Channel(chan) | tmp
+' Set device channel number
+'   Resulting frequency is the channel number multiplied by the channel spacing setting, added to the base frequency
+'   Valid values: 0..255
+'   Any other value polls the chip and returns the current setting
+    readRegX (core#CHANNR, 1, @tmp)
+    case chan
+        0..255:
+        OTHER:
+            return tmp
+
+    tmp &= core#CHANNR_MASK
+    tmp := (tmp | chan)
+    writeRegX (core#CHANNR, 1, @tmp)
+
 PUB CrystalOff
 ' Turn off crystal oscillator
     writeRegX (core#CS_SXOFF, 0, 0)
