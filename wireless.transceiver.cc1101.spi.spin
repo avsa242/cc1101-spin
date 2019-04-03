@@ -328,6 +328,22 @@ PUB IntFreq(kHz) | tmp
 
     writeRegX (core#FSCTRL1, 1, kHz)
 
+PUB ManchesterEnc(enabled) | tmp
+' Enable Manchester encoding/decoding
+'   Valid values: TRUE (-1 or 1), FALSE (0)
+'   Any other value polls the chip and returns the current setting
+    readRegX (core#MDMCFG2, 1, @tmp)
+    case ||enabled
+        0, 1:
+            enabled := (||enabled) << core#FLD_MANCHESTER_EN
+        OTHER:
+            result := ((tmp >> core#FLD_MANCHESTER_EN) & %1) * TRUE
+            return result
+
+    tmp &= core#MASK_MANCHESTER_EN
+    tmp := (tmp | enabled)
+    writeRegX (core#MDMCFG2, 1, @tmp)
+
 PUB Modulation(format) | tmp
 ' Set modulation of transmitted or expected signal
 '   Valid values:
