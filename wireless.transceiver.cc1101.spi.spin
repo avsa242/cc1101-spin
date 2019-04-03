@@ -188,6 +188,22 @@ PUB Channel(chan) | tmp
     tmp := (tmp | chan)
     writeRegX (core#CHANNR, 1, @tmp)
 
+PUB CRCCheck(enabled) | tmp
+' Enable CRC calc (TX) and check (RX)
+'   Valid values: TRUE (-1 or 1), FALSE (0)
+'   Any other value polls the chip and returns the current setting
+    readRegX (core#PKTCTRL0, 1, @tmp)
+    case ||enabled
+        0, 1:
+            enabled := (||enabled) << core#FLD_CRC_EN
+        OTHER:
+            result := ((tmp >> core#FLD_CRC_EN) & %1) * TRUE
+            return result
+
+    tmp &= core#MASK_CRC_EN
+    tmp := (tmp | enabled) & core#PKTCTRL0_MASK
+    writeRegX (core#PKTCTRL0, 1, @tmp)
+
 PUB CrystalOff
 ' Turn off crystal oscillator
     writeRegX (core#CS_SXOFF, 0, 0)
