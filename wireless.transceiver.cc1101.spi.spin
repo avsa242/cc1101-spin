@@ -87,6 +87,21 @@ PUB Stop
 
     spi.stop
 
+PUB Address(addr) | tmp
+' Set address used for packet filtration
+'   Valid values: $01..$FE (001-254)
+'   Any other value polls the chip and returns the current setting
+'   NOTE: $00 and $FF can be used as broadcast addresses.
+    readRegX (core#ADDR, 1, @tmp)
+    case addr
+        $01..$FE:
+        OTHER:
+            return tmp
+
+    tmp &= core#ADDR_MASK
+    tmp := (tmp | addr)
+    writeRegX (core#ADDR, 1, @tmp)
+
 PUB AutoCal(when) | tmp
 ' When to perform auto-calibration
 '   Valid values:
