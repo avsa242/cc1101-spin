@@ -234,6 +234,23 @@ PUB DCBlock(enabled) | tmp
     tmp := (tmp | enabled)
     writeRegX (core#MDMCFG2, 1, @tmp)
 
+PUB FEC(enabled) | tmp
+' Enable forward error correction with interleaving
+'   Valid values: TRUE (-1 or 1), FALSE (0)
+'   Any other value polls the chip and returns the current setting
+'   NOTE: Only supported for fixed packet length mode
+    readRegX (core#MDMCFG1, 1, @tmp)
+    case ||enabled
+        0, 1:
+            enabled := (||enabled) << core#FLD_FEC_EN
+        OTHER:
+            result := ((tmp >> core#FLD_FEC_EN) & %1) * TRUE
+            return result
+
+    tmp &= core#MASK_FEC_EN
+    tmp := (tmp | enabled) & core#MDMCFG1_MASK
+    writeRegX (core#MDMCFG1, 1, @tmp)
+
 PUB FIFO
 ' Returns number of bytes available in RX FIFO or free bytes in TX FIFO
     return Status & %1111
