@@ -220,6 +220,8 @@ PUB DCBlock(enabled) | tmp
 ' Enable digital DC blocking filter (before demod)
 '   Valid values: TRUE (-1 or 1), FALSE
 '   Any other value polls the chip and returns the current setting
+'   NOTE: Enable for better sensitivity (default).
+'       Disable for optimizing current usage. Only for data rates 250kBaud and lower
     readRegX (core#MDMCFG2, 1, @tmp)
     case enabled := ||enabled
         0, 1:
