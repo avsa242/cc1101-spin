@@ -40,7 +40,6 @@ VAR
 PUB Main
 
     Setup
-
     rf.Idle
     _row := 1
     RXOFF_MODE (1)
@@ -66,6 +65,7 @@ PUB Main
     CRC_AUTOFLUSH (1)
     PQT (1)
     SYNC_MODE (1)
+    PKTLEN (1)
     ser.NewLine
     ser.Str (string("Total failures: "))
     ser.Dec (_fails)
@@ -324,7 +324,7 @@ PUB Message(field, arg1, arg2)
             ser.PositionX (COL_READ)
             ser.Str (string("READ: "))
             ser.Dec (arg2)
-
+            ser.Chars (32, 3)
             ser.PositionX (COL_PF)
             PassFail (arg1 == arg2)
             ser.NewLine

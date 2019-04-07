@@ -503,7 +503,7 @@ PUB PacketLen(length) | tmp
         OTHER:
             return tmp & core#PKTLEN_MASK
 
-    writeRegX (core#PKTLEN, 1, length)
+    writeRegX (core#PKTLEN, 1, @length)
 
 PUB PacketLenCfg(mode) | tmp
 ' Set packet length mode
