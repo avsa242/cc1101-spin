@@ -63,10 +63,20 @@ PUB Main
     LENGTH_CONFIG (1)
     PKTCTRL1_APPEND_STATUS (1)
     CARRIER_SENSE_REL_THR (1)
+    CRC_AUTOFLUSH (1)
     ser.NewLine
     ser.Str (string("Total failures: "))
     ser.Dec (_fails)
     Flash (cfg#LED1)
+
+PUB CRC_AUTOFLUSH(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to -1
+            rf.CRCAutoFlush (tmp)
+            read := rf.CRCAutoFlush (-2)
+            Message (string("CRC_AUTOFLUSH"), tmp, read)
 
 PUB CARRIER_SENSE_REL_THR(reps) | tmp, read
 
