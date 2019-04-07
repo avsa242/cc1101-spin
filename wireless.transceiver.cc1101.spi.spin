@@ -49,6 +49,11 @@ CON
     IO_CLK_XODIV1       = $30
     IO_CLK_XODIV192     = $3F
 
+' Packet Length configuration modes
+    PKTLEN_FIXED        = 0
+    PKTLEN_VAR          = 1
+    PKTLEN_INF          = 2
+
 VAR
 
     byte _CS, _MOSI, _MISO, _SCK
@@ -397,6 +402,23 @@ PUB Modulation(format) | tmp
     tmp &= core#MASK_MOD_FORMAT
     tmp := (tmp | format)
     writeRegX (core#MDMCFG2, 1, @tmp)
+
+PUB PacketLenCfg(mode) | tmp
+' Set packet length mode
+'   Valid values:
+'       PKTLEN_FIXED (0): Fixed packet length mode. Set length with PacketLen
+'      *PKTLEN_VAR (1): Variable packet length mode. Packet length set by first byte after sync word
+'       PKTLEN_INF (2): Infinite packet length mode.
+'   Any other value polls the chip and returns the current setting
+    readRegX (core#PKTCTRL0, 1, @tmp)
+    case mode
+        0..2:
+        OTHER:
+            return tmp & core#BITS_LENGTH_CONFIG
+
+    tmp &= core#MASK_LENGTH_CONFIG
+    tmp := (tmp | mode) & core#PKTCTRL0_MASK
+    writeRegX (core#PKTCTRL0, 1, @tmp)
 
 PUB PartNumber
 ' Part number of device

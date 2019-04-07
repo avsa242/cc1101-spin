@@ -60,10 +60,20 @@ PUB Main
     NUM_PREAMBLE (1)
     SYNC1 (1)
     TXOFF_MODE (1)
+    LENGTH_CONFIG (1)
     ser.NewLine
     ser.Str (string("Total failures: "))
     ser.Dec (_fails)
     Flash (cfg#LED1)
+
+PUB LENGTH_CONFIG(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to 2
+            rf.PacketLenCfg (tmp)
+            read := rf.PacketLenCfg (-2)
+            Message (string("LENGTH_CONFIG"), tmp, read)
 
 PUB TXOFF_MODE(reps) | tmp, read
 
