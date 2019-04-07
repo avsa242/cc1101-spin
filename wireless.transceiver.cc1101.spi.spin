@@ -403,6 +403,20 @@ PUB Modulation(format) | tmp
     tmp := (tmp | format)
     writeRegX (core#MDMCFG2, 1, @tmp)
 
+PUB PacketLen(length) | tmp
+' Set packet length, when using fixed packet length mode,
+'   or maximum packet length when using variable packet length mode.
+'   Valid values: 1..255
+'   Any other value polls the chip and returns the current setting
+    readRegX (core#PKTLEN, 1, @tmp)
+    case length
+        1..255:
+            length &= core#PKTLEN_MASK
+        OTHER:
+            return tmp & core#PKTLEN_MASK
+
+    writeRegX (core#PKTLEN, 1, length)
+
 PUB PacketLenCfg(mode) | tmp
 ' Set packet length mode
 '   Valid values:

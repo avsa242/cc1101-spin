@@ -66,6 +66,20 @@ PUB Main
     ser.Dec (_fails)
     Flash (cfg#LED1)
 
+PUB PKTLEN(reps) | tmp, read
+
+    _row++
+'    _expanded := TRUE
+'    rf.Reset
+'    rf.Idle
+'    rf.PacketLenCfg (rf#PKTLEN_FIXED)
+    repeat reps
+        repeat tmp from 1 to 255
+            rf.PacketLen (tmp)
+            read := rf.PacketLen (-2)
+            Message (string("PKTLEN"), tmp, read)
+'            time.MSleep (10)
+
 PUB LENGTH_CONFIG(reps) | tmp, read
 
     _row++
