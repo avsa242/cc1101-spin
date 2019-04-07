@@ -195,6 +195,26 @@ PUB CarrierFreq(Hz) | tmp_msb, tmp_mb, tmp_lsb
             writeRegX (core#FREQ1, 1, @tmp_mb)
             writeRegX (core#FREQ2, 1, @tmp_msb)
 
+PUB CarrierSense(threshold) | tmp
+' Set relative change threshold for asserting carrier sense, in dB
+'   Valid values:
+'       0: Disabled
+'       6: 6dB increase in RSSI
+'       10: 10dB increase in RSSI
+'       14: 14dB increase in RSSI
+'   Any other value polls the chip and returns the current setting
+    readRegX (core#AGCTRL1, 1, @tmp)
+    case threshold
+        0, 6, 10, 14:
+            threshold := lookdownz(threshold: 0, 6, 10, 14) << core#FLD_CARRIER_SENSE_REL_THR
+        OTHER:
+            result := (tmp >> core#FLD_CARRIER_SENSE_REL_THR) & core#BITS_CARRIER_SENSE_REL_THR
+            return lookupz(result: 0, 6, 10, 14)
+
+    tmp &= core#MASK_CARRIER_SENSE_REL_THR
+    tmp := (tmp | threshold) & core#AGCTRL1_MASK
+    writeRegX (core#AGCTRL1, 1, @tmp)
+
 PUB Channel(chan) | tmp
 ' Set device channel number
 '   Resulting frequency is the channel number multiplied by the channel spacing setting, added to the base frequency

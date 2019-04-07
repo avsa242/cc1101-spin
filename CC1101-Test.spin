@@ -62,10 +62,20 @@ PUB Main
     TXOFF_MODE (1)
     LENGTH_CONFIG (1)
     PKTCTRL1_APPEND_STATUS (1)
+    CARRIER_SENSE_REL_THR (1)
     ser.NewLine
     ser.Str (string("Total failures: "))
     ser.Dec (_fails)
     Flash (cfg#LED1)
+
+PUB CARRIER_SENSE_REL_THR(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 1 to 4
+            rf.CarrierSense (lookup(tmp: 0, 6, 10, 14))
+            read := rf.CarrierSense (-2)
+            Message (string("CARRIER_SENSE_REL_THR"), lookup(tmp: 0, 6, 10, 14), read)
 
 PUB PKTCTRL1_APPEND_STATUS(reps) | tmp, read
 
