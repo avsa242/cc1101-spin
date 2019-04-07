@@ -21,9 +21,9 @@ CON
     MISO_PIN    = 10
 
     COL_REG     = 0
-    COL_SET     = 12
-    COL_READ    = 24
-    COL_PF      = 40
+    COL_SET     = 25
+    COL_READ    = 37
+    COL_PF      = 52
 
 OBJ
 
@@ -34,23 +34,174 @@ OBJ
 
 VAR
 
-    byte _ser_cog
+    long _fails, _expanded
+    byte _ser_cog, _row
 
 PUB Main
 
     Setup
 
     rf.Idle
-
+    _row := 1
     RXOFF_MODE (1)
     AUTOCAL (1)
     DRATE (1)
     CHANBW (1)
-
+    ADDR(1)
+    CHANNR (1)
+    CRC_EN (1)
+    DEM_DCFILT_OFF (1)
+    FEC_EN (1)
+    IOCFG0 (1)
+    IOCFG1 (1)
+    IOCFG2 (1)
+    MANCHESTER_EN (1)
+    MOD_FORMAT (1)
+    NUM_PREAMBLE (1)
+    SYNC1 (1)
+    TXOFF_MODE (1)
+    ser.NewLine
+    ser.Str (string("Total failures: "))
+    ser.Dec (_fails)
     Flash (cfg#LED1)
+
+PUB TXOFF_MODE(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to 3
+            rf.TXOff (tmp)
+            read := rf.TXOff (-2)
+            Message (string("TXOFF_MODE"), tmp, read)
+
+PUB SYNC1(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from $0000 to $00FF '$FFFF
+            rf.SyncWord (tmp)
+            read := rf.SyncWord (-2)
+            Message (string("SYNC1"), tmp, read)
+
+PUB NUM_PREAMBLE(reps) | tmp, read
+
+'    _expanded := TRUE
+    _row++
+    repeat reps
+        repeat tmp from 1 to 8
+            rf.Preamble (lookup(tmp: 2, 3, 4, 6, 8, 12, 16, 24))
+            read := rf.Preamble (-2)
+            Message (string("NUM_PREAMBLE"), lookup(tmp: 2, 3, 4, 6, 8, 12, 16, 24), read)
+
+PUB MOD_FORMAT(reps) | tmp, read
+
+    _row++
+    repeat tmp from 0 to 7
+        case tmp
+            0, 1, 3, 4, 7:
+                rf.Modulation (tmp)
+                read := rf.Modulation (-2)
+                Message (string("MOD_FORMAT"), tmp, read)
+
+            OTHER:
+                next
+
+PUB MANCHESTER_EN(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to -1
+            rf.ManchesterEnc (tmp)
+            read := rf.ManchesterEnc (-2)
+            Message (string("MANCHESTER_EN"), tmp, read)
+
+PUB IOCFG2(reps) | tmp, read
+
+    _row++
+    repeat tmp from $00 to $3F
+        case tmp
+            $00..$0F, $16..$17, $1B..$1D, $24..$27, $29, $2B, $2E..$3F:
+                rf.GDO2 (tmp)
+                read := rf.GDO2 (-2)
+                Message (string("IOCFG2"), tmp, read)
+
+            OTHER:
+                next
+
+PUB IOCFG1(reps) | tmp, read
+
+    _row++
+    repeat tmp from $00 to $3F
+        case tmp
+            $00..$0F, $16..$17, $1B..$1D, $24..$27, $29, $2B, $2E..$3F:
+                rf.GDO1 (tmp)
+                read := rf.GDO1 (-2)
+                Message (string("IOCFG1"), tmp, read)
+
+            OTHER:
+                next
+
+PUB IOCFG0(reps) | tmp, read
+
+    _row++
+    repeat tmp from $00 to $3F
+        case tmp
+            $00..$0F, $16..$17, $1B..$1D, $24..$27, $29, $2B, $2E..$3F:
+                rf.GDO0 (tmp)
+                read := rf.GDO0 (-2)
+                Message (string("IOCFG0"), tmp, read)
+
+            OTHER:
+                next
+
+PUB FEC_EN(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to -1
+            rf.FEC (tmp)
+            read := rf.FEC (-2)
+            Message (string("FEC_EN"), tmp, read)
+
+PUB DEM_DCFILT_OFF(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to -1
+            rf.DCBlock (tmp)
+            read := rf.DCBlock (-2)
+            Message (string("DEM_DCFILT_OFF"), tmp, read)
+
+PUB CRC_EN(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to -1
+            rf.CRCCheck (tmp)
+            read := rf.CRCCheck (-2)
+            Message (string("CRC_EN"), tmp, read)
+
+PUB CHANNR(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to 255
+            rf.Channel (tmp)
+            read := rf.Channel (-2)
+            Message (string("CHANNR"), tmp, read)
+
+PUB ADDR(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to 255
+            rf.Address (tmp)
+            read := rf.Address (-2)
+            Message (string("ADDR"), tmp, read)
 
 PUB RXOFF_MODE(reps) | tmp, read
 
+    _row++
     repeat reps
         repeat tmp from 0 to 3
             rf.RXOff (tmp)
@@ -59,6 +210,7 @@ PUB RXOFF_MODE(reps) | tmp, read
 
 PUB AUTOCAL(reps) | tmp, read
 
+    _row++
     repeat reps
         repeat tmp from 0 to 3
             rf.AutoCal (tmp)
@@ -67,6 +219,7 @@ PUB AUTOCAL(reps) | tmp, read
 
 PUB DRATE(reps) | tmp, read
 
+    _row++
     repeat reps
         repeat tmp from 1 to 11
             rf.DataRate (lookup(tmp: 1000, 1200, 2400, 4800, 9600, 19_600, 38_400, 76_800, 153_600, 250_000, 500_000))
@@ -75,6 +228,7 @@ PUB DRATE(reps) | tmp, read
 
 PUB CHANBW(reps) | tmp, read
 
+    _row++
     repeat reps
         repeat tmp from 1 to 16
             rf.RXBandwidth (lookup(tmp: 812, 650, 541, 464, 406, 325, 270, 232, 203, 162, 135, 116, 102, 81, 68, 58))
@@ -83,27 +237,52 @@ PUB CHANBW(reps) | tmp, read
 
 PUB Message(field, arg1, arg2)
 
-    ser.PositionX ( COL_REG)
-    ser.Str (field)
+    case _expanded
+        TRUE:
+            ser.PositionX (COL_REG)
+            ser.Str (field)
 
-    ser.PositionX ( COL_SET)
-    ser.Str (string("SET: "))
-    ser.Dec (arg1)
+            ser.PositionX (COL_SET)
+            ser.Str (string("SET: "))
+            ser.Dec (arg1)
 
-    ser.PositionX ( COL_READ)
-    ser.Str (string("   READ: "))
-    ser.Dec (arg2)
+            ser.PositionX (COL_READ)
+            ser.Str (string("READ: "))
+            ser.Dec (arg2)
 
-    ser.PositionX (COL_PF)
-    PassFail (arg1 == arg2)
-    ser.NewLine
+            ser.PositionX (COL_PF)
+            PassFail (arg1 == arg2)
+            ser.NewLine
 
+        FALSE:
+            ser.Position (COL_REG, _row)
+            ser.Str (field)
+
+            ser.Position (COL_SET, _row)
+            ser.Str (string("SET: "))
+            ser.Hex (arg1, 4)
+
+            ser.Position (COL_READ, _row)
+            ser.Str (string("READ: "))
+            ser.Hex (arg2, 8)
+
+            ser.Position (COL_PF, _row)
+            PassFail (arg1 == arg2)
+            ser.NewLine
+        OTHER:
+            ser.Str (string("DEADBEEF"))
 PUB PassFail(num)
 
     case num
-        0: ser.Str (string("FAIL"))
-        -1: ser.Str (string("PASS"))
-        OTHER: ser.Str (string("???"))
+        0:
+            ser.Str (string("FAIL"))
+            _fails++
+
+        -1:
+            ser.Str (string("PASS"))
+
+        OTHER:
+            ser.Str (string("???"))
 
 PUB Setup
 

@@ -155,9 +155,9 @@ CON
         BITS_MOD_FORMAT             = %111
         BITS_SYNC_MODE              = %111
         MASK_DEM_DCFILT_OFF         = MDMCFG2_MASK ^ (1 << FLD_DEM_DCFILT_OFF)
-        MASK_MOD_FORMAT             = MDMCFG2_MASK ^ (1 << FLD_MOD_FORMAT)
+        MASK_MOD_FORMAT             = MDMCFG2_MASK ^ (BITS_MOD_FORMAT << FLD_MOD_FORMAT)
         MASK_MANCHESTER_EN          = MDMCFG2_MASK ^ (1 << FLD_MANCHESTER_EN)
-        MASK_SYNC_MODE              = MDMCFG2_MASK ^ (1 << FLD_SYNC_MODE)
+        MASK_SYNC_MODE              = MDMCFG2_MASK ^ (BITS_SYNC_MODE << FLD_SYNC_MODE)
 
     MDMCFG1                         = $13
     MDMCFG1_MASK                    = $F3
@@ -167,8 +167,8 @@ CON
         BITS_NUM_PREAMBLE           = %111
         BITS_CHANSPC_E              = %11
         MASK_FEC_EN                 = MDMCFG1_MASK ^ (1 << FLD_FEC_EN)
-        MASK_NUM_PREAMBLE           = MDMCFG1_MASK ^ (1 << FLD_NUM_PREAMBLE)
-        MASK_CHANSPC_E              = MDMCFG1_MASK ^ (1 << FLD_CHANSPC_E)
+        MASK_NUM_PREAMBLE           = MDMCFG1_MASK ^ (BITS_NUM_PREAMBLE << FLD_NUM_PREAMBLE)
+        MASK_CHANSPC_E              = MDMCFG1_MASK ^ (BITS_CHANSPC_E << FLD_CHANSPC_E)
 
     MDMCFG0                         = $14
     MDMCFG0_MASK                    = $FF

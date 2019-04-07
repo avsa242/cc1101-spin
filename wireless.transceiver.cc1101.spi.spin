@@ -12,42 +12,42 @@
 
 CON
 
-    F_XOSC          = 26_000_000     'CC1101 XTAL Oscillator freq, in Hz
+    F_XOSC              = 26_000_000     'CC1101 XTAL Oscillator freq, in Hz
 
 ' Auto-calibration state
-    NEVER           = 0
-    IDLE_RXTX       = 1
-    RXTX_IDLE       = 2
-    RXTX_IDLE4      = 3
+    NEVER               = 0
+    IDLE_RXTX           = 1
+    RXTX_IDLE           = 2
+    RXTX_IDLE4          = 3
 
 ' RXOff states
-    RXOFF_IDLE      = 0
-    RXOFF_FSTXON    = 1
-    RXOFF_TX        = 2
-    RXOFF_RX        = 3
+    RXOFF_IDLE          = 0
+    RXOFF_FSTXON        = 1
+    RXOFF_TX            = 2
+    RXOFF_RX            = 3
 
 ' TXOff states
-    TXOFF_IDLE      = 0
-    TXOFF_FSTXON    = 1
-    TXOFF_TX        = 2
-    TXOFF_RX        = 3
+    TXOFF_IDLE          = 0
+    TXOFF_FSTXON        = 1
+    TXOFF_TX            = 2
+    TXOFF_RX            = 3
 
 ' Modulation formats
-    FSK2            = %000
-    GFSK            = %001
-    ASKOOK          = %011
-    FSK4            = %100
-    MSK             = %111
+    FSK2                = %000
+    GFSK                = %001
+    ASKOOK              = %011
+    FSK4                = %100
+    MSK                 = %111
 
 ' CC1101 I/O pin output signals
-    IO_RXOVERFLOW   = $04
-    IO_TXUNDERFLOW  = $05
-    IO_CARRIER      = $0E
-    IO_CHIP_RDYn    = $29
-    IO_XOSC_STABLE  = $2B
-    IO_HI_Z         = $2E
-    IO_CLK_XODIV1   = $30
-    IO_CLK_XODIV192 = $3F
+    IO_RXOVERFLOW       = $04
+    IO_TXUNDERFLOW      = $05
+    IO_CARRIER          = $0E
+    IO_CHIP_RDYn        = $29
+    IO_XOSC_STABLE      = $2B
+    IO_HI_Z             = $2E
+    IO_CLK_XODIV1       = $30
+    IO_CLK_XODIV192     = $3F
 
 VAR
 
@@ -89,18 +89,17 @@ PUB Stop
 
 PUB Address(addr) | tmp
 ' Set address used for packet filtration
-'   Valid values: $01..$FE (001-254)
+'   Valid values: $00..$FF (000-255)
 '   Any other value polls the chip and returns the current setting
 '   NOTE: $00 and $FF can be used as broadcast addresses.
     readRegX (core#ADDR, 1, @tmp)
     case addr
-        $01..$FE:
+        $00..$FF:
         OTHER:
             return tmp
 
-    tmp &= core#ADDR_MASK
-    tmp := (tmp | addr)
-    writeRegX (core#ADDR, 1, @tmp)
+    addr &= core#ADDR_MASK
+    writeRegX (core#ADDR, 1, @addr)
 
 PUB AutoCal(when) | tmp
 ' When to perform auto-calibration
@@ -161,7 +160,7 @@ PUB CarrierFreq(Hz) | tmp_msb, tmp_mb, tmp_lsb
         433:
             tmp_msb := $10
             tmp_mb := $B0
-            tmp_lsb := $72
+            tmp_lsb := $C0'$72
             writeRegX (core#FREQ0, 1, @tmp_lsb)
             writeRegX (core#FREQ1, 1, @tmp_mb)
             writeRegX (core#FREQ2, 1, @tmp_msb)
@@ -184,13 +183,14 @@ PUB Channel(chan) | tmp
         OTHER:
             return tmp
 
-    tmp &= core#CHANNR_MASK
-    tmp := (tmp | chan)
-    writeRegX (core#CHANNR, 1, @tmp)
+    chan &= core#CHANNR_MASK
+    writeRegX (core#CHANNR, 1, @chan)
 
 PUB CRCCheck(enabled) | tmp
 ' Enable CRC calc (TX) and check (RX)
-'   Valid values: TRUE (-1 or 1), FALSE (0)
+'   Valid values:
+'      *TRUE (-1 or 1)
+'       FALSE (0)
 '   Any other value polls the chip and returns the current setting
     readRegX (core#PKTCTRL0, 1, @tmp)
     case ||enabled
@@ -274,20 +274,20 @@ PUB FIFO
 PUB FlushRX
 ' Flush receive FIFO/buffer
 '   NOTE: Will only flush RX buffer if overflowed or if chip is idle, per datasheet recommendation
-    case _status_byte
-        core#MARCSTATE_RXFIFO_OVERFLOW, core#MARCSTATE_IDLE:
+'    case Status
+'        core#MARCSTATE_RXFIFO_OVERFLOW, core#MARCSTATE_IDLE:
             writeRegX (core#CS_SFRX, 0, 0)
-        OTHER:
-            return
+'        OTHER:
+'            return
 
 PUB FlushTX
 ' Flush transmit FIFO/buffer
 '   NOTE: Will only flush TX buffer if underflowed or if chip is idle, per datasheet recommendation
-    case _status_byte
-        core#MARCSTATE_TXFIFO_UNDERFLOW, core#MARCSTATE_IDLE:
+'    case _status_byte
+'        core#MARCSTATE_TXFIFO_UNDERFLOW, core#MARCSTATE_IDLE:
             writeRegX (core#CS_SFTX, 0, 0)
-        OTHER:
-            return
+'        OTHER:
+'            return
 
 PUB FSTX
 ' Enable frequency synthesizer and calibrate
@@ -317,7 +317,7 @@ PUB GDO1(config) | tmp
 '   Any other value polls the chip and returns the current setting
 '   NOTE: This pin is shared with the SPI signal SO, and is valid only when CS is high.
 '       The default setting is IO_HI_Z ($2E): Hi-Z/High-impedance/Tri-state
-    readRegX (core#IOCFG0, 1, @tmp)
+    readRegX (core#IOCFG1, 1, @tmp)
     case config
         $00..$0F, $16..$17, $1B..$1D, $24..$27, $29, $2B, $2E..$3F:
             config &= core#BITS_GDO1_CFG
@@ -333,7 +333,7 @@ PUB GDO2(config) | tmp
 '   Valid values: $00..$0F, $16..$17, $1B..$1D, $24..$39, $41, $43, $46..$3F
 '   Any other value polls the chip and returns the current setting
 '   NOTE: The default setting is IO_CHIP_RDYn
-    readRegX (core#IOCFG0, 1, @tmp)
+    readRegX (core#IOCFG2, 1, @tmp)
     case config
         $00..$0F, $16..$17, $1B..$1D, $24..$27, $29, $2B, $2E..$3F:
             config &= core#BITS_GDO2_CFG
@@ -594,6 +594,7 @@ PUB writeRegX(reg, nr_bytes, buf_addr) | tmp
             spi.SHIFTOUT(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
             repeat tmp from 0 to nr_bytes-1
                 spi.SHIFTOUT(_MOSI, _SCK, core#MOSI_BITORDER, 8, byte[buf_addr][tmp])
+'                _status_byte := spi.SHIFTIN (_MISO, _SCK, core#MISO_BITORDER, 8)       'Leave disbled for now - causes write issues
             outa[_CS] := 1
 
         $30..$3D:                               ' Command strobes
@@ -614,6 +615,7 @@ PUB writeRegX(reg, nr_bytes, buf_addr) | tmp
             spi.SHIFTOUT(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
             repeat tmp from 0 to nr_bytes-1
                 spi.SHIFTOUT(_MOSI, _SCK, core#MOSI_BITORDER, 8, byte[buf_addr][tmp])
+'                _status_byte := spi.SHIFTIN (_MISO, _SCK, core#MISO_BITORDER, 8)
             outa[_CS] := 1
 
         OTHER:                                  ' Invalid reg - ignore
