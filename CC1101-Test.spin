@@ -64,10 +64,21 @@ PUB Main
     PKTCTRL1_APPEND_STATUS (1)
     CARRIER_SENSE_REL_THR (1)
     CRC_AUTOFLUSH (1)
+    PQT (1)
     ser.NewLine
     ser.Str (string("Total failures: "))
     ser.Dec (_fails)
     Flash (cfg#LED1)
+
+PUB PQT(reps) | tmp, read
+
+'    _expanded := TRUE
+    _row++
+    repeat reps
+        repeat tmp from 1 to 8
+            rf.PreambleQual (lookup(tmp: 0, 4, 8, 12, 16, 20, 24, 28))
+            read := rf.PreambleQual (-2)
+            Message (string("PQT"), lookup(tmp: 0, 4, 8, 12, 16, 20, 24, 28), read)
 
 PUB CRC_AUTOFLUSH(reps) | tmp, read
 

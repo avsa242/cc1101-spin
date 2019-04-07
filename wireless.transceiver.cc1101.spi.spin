@@ -543,6 +543,23 @@ PUB Preamble(bytes) | tmp
     tmp := (tmp | bytes)
     writeRegX (core#MDMCFG1, 1, @tmp)
 
+PUB PreambleQual(threshold) | tmp
+' Set Preamble quality estimator threshold
+'   Valid values: 0, 4, 8, 12, 16, 20, 24, 28
+'   NOTE: If 0, the sync word is always accepted.
+'   Any other value polls the chip and returns the current setting
+    readRegX (core#PKTCTRL1, 1, @tmp)
+    case lookdown(threshold: 0, 4, 8, 12, 16, 20, 24, 28)
+        1..8:
+            threshold := lookdownz(threshold: 0, 4, 8, 12, 16, 20, 24, 28) << core#FLD_PQT
+        OTHER:
+            result := ((tmp >> core#FLD_PQT) & core#BITS_PQT)
+            return lookupz(result: 0, 4, 8, 12, 16, 20, 24, 28)
+
+    tmp &= core#MASK_PQT
+    tmp := (tmp | threshold) & core#PKTCTRL1_MASK
+    writeRegX (core#PKTCTRL1, 1, @tmp)
+
 PUB Reset
 ' Reset the chip
     writeRegX (core#CS_SRES, 0, 0)
