@@ -54,6 +54,16 @@ CON
     PKTLEN_VAR          = 1
     PKTLEN_INF          = 2
 
+' Syncword qualifier modes
+    SYNCMODE_NONE       = 0
+    SYNCMODE_1516       = 1
+    SYNCMODE_1616       = 2
+    SYNCMODE_3032       = 3
+    SYNCMODE_CS_ONLY    = 4
+    SYNCMODE_1516_CS    = 5
+    SYNCMODE_1616_CS    = 6
+    SYNCMODE_3032_CS    = 7
+
 VAR
 
     byte _CS, _MOSI, _MISO, _SCK
@@ -631,6 +641,28 @@ PUB Status
 ' Read the status byte
     writeRegX (core#CS_SNOP, 0, 0)
     return _status_byte
+
+PUB SyncMode(mode) | tmp
+' Set sync-word qualifier mode
+'   Valid values:
+'       SYNCMODE_NONE (0): No preamble or syncword
+'       SYNCMODE_1516 (1): 15 of 16 syncword bits must match
+'      *SYNCMODE_1616 (2): 16 of 16 syncword bits must match
+'       SYNCMODE_3032 (3): 30 of 32 syncword bits must match
+'       SYNCMODE_CS_ONLY (4): No preamble or syncword. Carrier-sense must be above threshold
+'       SYNCMODE_1516_CS (5): 15 of 16 syncword bits must match, and carrier-sense must be above threshold
+'       SYNCMODE_1616_CS (6): 16 of 16 syncword bits must match, and carrier-sense must be above threshold
+'       SYNCMODE_3032_CS (7): 30 of 32 syncword bits must match, and carrier-sense must be above threshold
+'   Any other value polls the chip and returns the current setting
+    readRegX (core#MDMCFG2, 1, @tmp)
+    case mode
+        0..7:
+        OTHER:
+            return tmp & core#BITS_SYNC_MODE
+
+    tmp &= core#MASK_SYNC_MODE
+    tmp := (tmp | mode) & core#MDMCFG2_MASK
+    writeRegX (core#MDMCFG2, 1, @tmp)
 
 PUB SyncWord(sync_word) | tmp
 ' Set transmitted (TX) or expected (RX) sync word

@@ -65,10 +65,20 @@ PUB Main
     CARRIER_SENSE_REL_THR (1)
     CRC_AUTOFLUSH (1)
     PQT (1)
+    SYNC_MODE (1)
     ser.NewLine
     ser.Str (string("Total failures: "))
     ser.Dec (_fails)
     Flash (cfg#LED1)
+
+PUB SYNC_MODE(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to 7
+            rf.SyncMode (tmp)
+            read := rf.SyncMode (-2)
+            Message (string("SYNC_MODE"), tmp, read)
 
 PUB PQT(reps) | tmp, read
 
@@ -325,11 +335,11 @@ PUB Message(field, arg1, arg2)
 
             ser.Position (COL_SET, _row)
             ser.Str (string("SET: "))
-            ser.Hex (arg1, 4)
+            ser.Dec (arg1)
 
             ser.Position (COL_READ, _row)
             ser.Str (string("READ: "))
-            ser.Hex (arg2, 8)
+            ser.Dec (arg2)
 
             ser.Position (COL_PF, _row)
             PassFail (arg1 == arg2)
