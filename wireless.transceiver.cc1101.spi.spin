@@ -311,6 +311,28 @@ PUB DCBlock(enabled) | tmp
     tmp := (tmp | enabled)
     writeRegX (core#MDMCFG2, 1, @tmp)
 
+PUB Deviation(freq) | tmp
+' Set frequency deviation from carrier, in Hz
+'   Valid values:
+'       1_586..380_859
+'       *47_607
+'   NOTE: This setting has no effect when Modulation format is ASK/OOK.
+'   NOTE: This setting applies to both TX and RX roles. When role is RX, setting must be
+'           approximately correct for reliable demodulation.
+'   Any other value polls the chip and returns the current setting
+    readRegX (core#DEVIATN, 1, @tmp)
+    case freq
+        1586..380859:
+'            freq := freq << core#FLD_FIELDNAME
+            freq := $13
+        OTHER:
+            result := tmp & core#DEVIATN_MASK
+            return result
+
+    tmp := $00
+    tmp := (tmp | freq)
+    writeRegX (core#DEVIATN, 1, @tmp)
+
 PUB FEC(enabled) | tmp
 ' Enable forward error correction with interleaving
 '   Valid values: TRUE (-1 or 1), FALSE (0)
