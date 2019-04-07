@@ -106,6 +106,24 @@ PUB Address(addr) | tmp
     addr &= core#ADDR_MASK
     writeRegX (core#ADDR, 1, @addr)
 
+PUB AppendStatus(enabled) | tmp
+' Append status bytes to packet payload (RSSI, LQI, CRC OK)
+'   Valid values:
+'      *TRUE (-1 or 1)
+'       FALSE (0)
+'   Any other value polls the chip and returns the current setting
+    readRegX (core#PKTCTRL1, 1, @tmp)
+    case ||enabled
+        0, 1:
+            enabled := (||enabled) << core#FLD_APPEND_STATUS
+        OTHER:
+            result := ((tmp >> core#FLD_APPEND_STATUS) & %1) * TRUE
+            return result
+
+    tmp &= core#MASK_APPEND_STATUS
+    tmp := (tmp | enabled) & core#PKTCTRL1_MASK
+    writeRegX (core#PKTCTRL1, 1, @tmp)
+
 PUB AutoCal(when) | tmp
 ' When to perform auto-calibration
 '   Valid values:

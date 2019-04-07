@@ -61,10 +61,20 @@ PUB Main
     SYNC1 (1)
     TXOFF_MODE (1)
     LENGTH_CONFIG (1)
+    PKTCTRL1_APPEND_STATUS (1)
     ser.NewLine
     ser.Str (string("Total failures: "))
     ser.Dec (_fails)
     Flash (cfg#LED1)
+
+PUB PKTCTRL1_APPEND_STATUS(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to -1
+            rf.AppendStatus (tmp)
+            read := rf.AppendStatus (-2)
+            Message (string("PKTCTRL1 (APPEND_STATUS)"), tmp, read)
 
 PUB PKTLEN(reps) | tmp, read
 
