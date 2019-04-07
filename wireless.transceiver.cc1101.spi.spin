@@ -564,6 +564,14 @@ PUB Reset
 ' Reset the chip
     writeRegX (core#CS_SRES, 0, 0)
 
+PUB RSSI
+' Received Signal Strength Indicator
+    readRegX (core#RSSI, 1, @result)
+    if result => 128
+        result := ((result - 256)/2) - 74
+    else
+        result := (result / 2) - 74
+
 PUB RX
 ' Change chip state to RX (receive)
     writeRegX (core#CS_SRX, 0, 0)
