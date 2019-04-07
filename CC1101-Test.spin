@@ -66,10 +66,20 @@ PUB Main
     PQT (1)
     SYNC_MODE (1)
     PKTLEN (1)
+    ADR_CHK (1)
     ser.NewLine
     ser.Str (string("Total failures: "))
     ser.Dec (_fails)
     Flash (cfg#LED1)
+
+PUB ADR_CHK(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to 3
+            rf.AddressCheck (tmp)
+            read := rf.AddressCheck (-2)
+            Message (string("ADR_CHK"), tmp, read)
 
 PUB SYNC_MODE(reps) | tmp, read
 

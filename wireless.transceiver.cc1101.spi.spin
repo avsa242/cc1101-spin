@@ -12,57 +12,63 @@
 
 CON
 
-    F_XOSC              = 26_000_000     'CC1101 XTAL Oscillator freq, in Hz
+    F_XOSC                  = 26_000_000     'CC1101 XTAL Oscillator freq, in Hz
 
 ' Auto-calibration state
-    NEVER               = 0
-    IDLE_RXTX           = 1
-    RXTX_IDLE           = 2
-    RXTX_IDLE4          = 3
+    NEVER                   = 0
+    IDLE_RXTX               = 1
+    RXTX_IDLE               = 2
+    RXTX_IDLE4              = 3
 
 ' RXOff states
-    RXOFF_IDLE          = 0
-    RXOFF_FSTXON        = 1
-    RXOFF_TX            = 2
-    RXOFF_RX            = 3
+    RXOFF_IDLE              = 0
+    RXOFF_FSTXON            = 1
+    RXOFF_TX                = 2
+    RXOFF_RX                = 3
 
 ' TXOff states
-    TXOFF_IDLE          = 0
-    TXOFF_FSTXON        = 1
-    TXOFF_TX            = 2
-    TXOFF_RX            = 3
+    TXOFF_IDLE              = 0
+    TXOFF_FSTXON            = 1
+    TXOFF_TX                = 2
+    TXOFF_RX                = 3
 
 ' Modulation formats
-    FSK2                = %000
-    GFSK                = %001
-    ASKOOK              = %011
-    FSK4                = %100
-    MSK                 = %111
+    FSK2                    = %000
+    GFSK                    = %001
+    ASKOOK                  = %011
+    FSK4                    = %100
+    MSK                     = %111
 
 ' CC1101 I/O pin output signals
-    IO_RXOVERFLOW       = $04
-    IO_TXUNDERFLOW      = $05
-    IO_CARRIER          = $0E
-    IO_CHIP_RDYn        = $29
-    IO_XOSC_STABLE      = $2B
-    IO_HI_Z             = $2E
-    IO_CLK_XODIV1       = $30
-    IO_CLK_XODIV192     = $3F
+    IO_RXOVERFLOW           = $04
+    IO_TXUNDERFLOW          = $05
+    IO_CARRIER              = $0E
+    IO_CHIP_RDYn            = $29
+    IO_XOSC_STABLE          = $2B
+    IO_HI_Z                 = $2E
+    IO_CLK_XODIV1           = $30
+    IO_CLK_XODIV192         = $3F
 
 ' Packet Length configuration modes
-    PKTLEN_FIXED        = 0
-    PKTLEN_VAR          = 1
-    PKTLEN_INF          = 2
+    PKTLEN_FIXED            = 0
+    PKTLEN_VAR              = 1
+    PKTLEN_INF              = 2
 
 ' Syncword qualifier modes
-    SYNCMODE_NONE       = 0
-    SYNCMODE_1516       = 1
-    SYNCMODE_1616       = 2
-    SYNCMODE_3032       = 3
-    SYNCMODE_CS_ONLY    = 4
-    SYNCMODE_1516_CS    = 5
-    SYNCMODE_1616_CS    = 6
-    SYNCMODE_3032_CS    = 7
+    SYNCMODE_NONE           = 0
+    SYNCMODE_1516           = 1
+    SYNCMODE_1616           = 2
+    SYNCMODE_3032           = 3
+    SYNCMODE_CS_ONLY        = 4
+    SYNCMODE_1516_CS        = 5
+    SYNCMODE_1616_CS        = 6
+    SYNCMODE_3032_CS        = 7
+
+' Address check modes
+    ADRCHK_NONE             = 0
+    ADRCHK_CHK_NO_BCAST     = 1
+    ADRCHK_CHK_00_BCAST     = 2
+    ADRCHK_CHK_00_FF_BCAST  = 3
 
 VAR
 
@@ -115,6 +121,25 @@ PUB Address(addr) | tmp
 
     addr &= core#ADDR_MASK
     writeRegX (core#ADDR, 1, @addr)
+
+PUB AddressCheck(check) | tmp
+' Short descr
+'   Valid values:
+'       ADRCHK_NONE (0): No address check
+'       ADRCHK_CHK_NO_BCAST (1): Check address, but ignore broadcast addresses
+'       ADRCHK_CHK_00_BCAST (2): Check address, and also respond to $00 broadcast address
+'       ADRCHK_CHK_00_FF_BCAST (3): Check address, and also respond to both $00 and $FF broadcast addresses
+'   Any other value polls the chip and returns the current setting
+    readRegX (core#PKTCTRL1, 1, @tmp)
+    case check
+        0..3:
+            check := check & core#BITS_ADR_CHK
+        OTHER:
+            return tmp & core#BITS_ADR_CHK
+
+    tmp &= core#MASK_ADR_CHK
+    tmp := (tmp | check) & core#PKTCTRL1_MASK
+    writeRegX (core#PKTCTRL1, 1, @tmp)
 
 PUB AppendStatus(enabled) | tmp
 ' Append status bytes to packet payload (RSSI, LQI, CRC OK)
