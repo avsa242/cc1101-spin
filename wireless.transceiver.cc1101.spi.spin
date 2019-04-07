@@ -477,7 +477,7 @@ PUB IntFreq(kHz) | tmp
         OTHER:
             return ((F_XOSC / 1024) * tmp) / 1000
 
-    writeRegX (core#FSCTRL1, 1, kHz)
+    writeRegX (core#FSCTRL1, 1, @kHz)
 
 PUB ManchesterEnc(enabled) | tmp
 ' Enable Manchester encoding/decoding
