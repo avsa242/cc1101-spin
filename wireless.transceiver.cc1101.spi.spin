@@ -718,6 +718,23 @@ PUB Version
 '   NOTE: Datasheet states this value is subject to change without notice
     readRegX (core#VERSION, 1, @result)
 
+PUB WhiteData(enabled) | tmp
+' Enable data whitening
+'   Valid values: TRUE (-1 or 1), FALSE (0)
+'   Any other value polls the chip and returns the current setting
+'   NOTE: Applies to all data, except the preamble and sync word.
+    readRegX (core#PKTCTRL0, 1, @tmp)
+    case ||enabled
+        0, 1:
+            enabled := (||enabled) << core#FLD_WHITE_DATA
+        OTHER:
+            result := ((tmp >> core#FLD_WHITE_DATA) & %1) * TRUE
+            return result
+
+    tmp &= core#MASK_WHITE_DATA
+    tmp := (tmp | enabled)
+    writeRegX (core#PKTCTRL0, 1, @tmp)
+
 PUB WOR
 ' Change chip state to WOR (Wake-on-Radio)
     writeRegX (core#CS_SWOR, 0, 0)
