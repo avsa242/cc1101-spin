@@ -12,7 +12,10 @@
 
 CON
 
-    F_XOSC                  = 26_000_000     'CC1101 XTAL Oscillator freq, in Hz
+    F_XOSC                  = 26_000_000        ' CC1101 XTAL Oscillator freq, in Hz
+    SIXT                    = 1 << 16           ' 2^16
+    UM_FACT                 = 1_000_000_000     ' Scale to use in unsigned math object
+    UM_FREQ_RES             = 396_728515        '(F_XOSC / SIXT) * 1_000_000
 
 ' Auto-calibration state
     NEVER                   = 0
@@ -40,9 +43,11 @@ CON
     MSK                     = %111
 
 ' CC1101 I/O pin output signals
-    IO_RXOVERFLOW           = $04
-    IO_TXUNDERFLOW          = $05
-    IO_CARRIER              = $0E
+    TRIG_RXTHRESH_END_PKT   = $01
+    TRIG_RXOVERFLOW         = $04
+    TRIG_TXUNDERFLOW        = $05
+    TRIG_SYNCWORD_TXRX      = $06
+    TRIG_CARRIER            = $0E
     IO_CHIP_RDYn            = $29
     IO_XOSC_STABLE          = $2B
     IO_HI_Z                 = $2E
@@ -77,9 +82,10 @@ VAR
 
 OBJ
 
-    spi : "SPI_Asm"                                             'PASM SPI Driver
-    core: "core.con.cc1101"
-    time: "time"                                                'Basic timing functions
+    spi     : "SPI_Asm"                                             'PASM SPI Driver
+    core    : "core.con.cc1101"
+    time    : "time"                                                'Basic timing functions
+    umath   : "umath"
 
 PUB Null
 ''This is not a top-level object
@@ -182,53 +188,26 @@ PUB CalFreqSynth
 ' Calibrate the frequency synthesizer
     writeRegX (core#CS_SCAL, 0, 0)
 
-PUB CarrierFreq(Hz) | tmp_msb, tmp_mb, tmp_lsb
+PUB CarrierFreq(Hz) | tmp
 ' Set carrier/center frequency, in Hz
 '   Valid values:
 '       300_000_000..348_000_000, 387_000_000..464_000_000, 779_000_000..928_000_000
 '   Any other value polls the chip and returns the current setting
 '   NOTE: The actual set frequency has a resolution of fXOSC/2^16 (i.e., approx 396Hz)
-{    readRegX (core#FREQ2, 1, @tmp_msb)
-    readRegX (core#FREQ1, 1, @tmp_mb)
-    readRegX (core#FREQ0, 1, @tmp_lsb)
+    readRegX (core#FREQ2, 3, @tmp)
     case Hz
         300_000_000..348_000_000, 387_000_000..464_000_000, 779_000_000..928_000_000:
-            Hz := 65536 / (F_XOSC / Hz)
+            Hz := umath.multdiv (F_XOSC, UM_FACT, Hz)   'Need 64bit math to hold the large scaled up numbers
+            Hz := umath.multdiv (SIXT, UM_FACT, Hz)
+            Hz.byte[3] := Hz.byte[0]                    'Reverse the byte order - the CC1101 registers are MSB-MB-LSB
+            Hz.byte[0] := Hz.byte[2]                    ' but they'd by written LSB-MB-MSB without the swap
+            Hz.byte[2] := Hz.byte[3]
+            Hz.byte[3] := 0
         OTHER:
-            result := tmp & core#FREQ_MASK
-            return (F_XOSC / 65536) * tmp
+            result := ((tmp.byte[0] << 16) | (tmp.byte[1] << 8) | tmp.byte[2])
+            return umath.multdiv (result, UM_FREQ_RES, 1_000_000)
 
-    tmp_lsb := Hz.byte[0]
-    tmp_mb := Hz.byte[1]
-    tmp_msb := Hz.byte[2]
-
-    writeRegX (core#FREQ0, 1, byte[tmp][0])
-    writeRegX (core#FREQ1, 1, byte[tmp][1])
-    writeRegX (core#FREQ2, 1, byte[tmp][2])
-}
-    case Hz
-        315:
-            tmp_msb := $0C
-            tmp_mb := $1D
-            tmp_lsb := $8A
-            writeRegX (core#FREQ0, 1, @tmp_lsb)
-            writeRegX (core#FREQ1, 1, @tmp_mb)
-            writeRegX (core#FREQ2, 1, @tmp_msb)
-
-        433:
-            tmp_msb := $10
-            tmp_mb := $B0
-            tmp_lsb := $C0'$72
-            writeRegX (core#FREQ0, 1, @tmp_lsb)
-            writeRegX (core#FREQ1, 1, @tmp_mb)
-            writeRegX (core#FREQ2, 1, @tmp_msb)
-        868:
-            tmp_msb := $21
-            tmp_mb := $62
-            tmp_lsb := $76
-            writeRegX (core#FREQ0, 1, @tmp_lsb)
-            writeRegX (core#FREQ1, 1, @tmp_mb)
-            writeRegX (core#FREQ2, 1, @tmp_msb)
+    writeRegX (core#FREQ2, 3, @Hz)
 
 PUB CarrierSense(threshold) | tmp
 ' Set relative change threshold for asserting carrier sense, in dB
@@ -312,10 +291,10 @@ PUB DataRate(Baud) | tmp, tmp_e, tmp_m, DRATE_E, DRATE_M
 
     readRegX (core#MDMCFG4, 1, @tmp_e)
     readRegX (core#MDMCFG3, 1, @tmp_m)
-    case Baud := lookdown(Baud: 1000, 1200, 2400, 4800, 9600, 19_600, 38_400, 76_800, 153_600, 250_000, 500_000)
-        1..11:
-            DRATE_E := lookup(Baud: $05, $05, $06, $07, $08, $09, $0A, $0B, $0C, $0D, $0E) & core#BITS_DRATE_E
-            DRATE_M := lookup(Baud: $42, $83, $83, $83, $83, $8B, $83, $83, $83, $3B, $3B) & core#MDMCFG3_MASK
+    case Baud := lookdown(Baud: 1000, 1200, 2048, 2400, 4096, 4800, 9600, 19_600, 38_400, 76_800, 153_600, 250_000, 500_000)
+        1..13:
+            DRATE_E := lookup(Baud: $05, $05, $06, $06, $07, $07, $08, $09, $0A, $0B, $0C, $0D, $0E) & core#BITS_DRATE_E
+            DRATE_M := lookup(Baud: $42, $83, $4A, $83, $4A, $83, $83, $8B, $83, $83, $83, $3B, $3B) & core#MDMCFG3_MASK
         OTHER:
             tmp_e &= core#BITS_DRATE_E
             tmp := (tmp_e << 8) | tmp_m
@@ -357,6 +336,8 @@ PUB Deviation(freq) | tmp
 '   Any other value polls the chip and returns the current setting
     readRegX (core#DEVIATN, 1, @tmp)
     case freq
+        80000:
+            freq := $55
         1586..380859:
 '            freq := freq << core#FLD_FIELDNAME
             freq := $13
@@ -603,7 +584,7 @@ PUB RSSI
 ' Received Signal Strength Indicator
     readRegX (core#RSSI, 1, @result)
     if result => 128
-        result := ((result - 256)/2) - 74
+        result := ((result - 256) / 2) - 74
     else
         result := (result / 2) - 74
 
