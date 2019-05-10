@@ -229,6 +229,22 @@ PUB CarrierSense(threshold) | tmp
     tmp := (tmp | threshold) & core#AGCTRL1_MASK
     writeRegX (core#AGCTRL1, 1, @tmp)
 
+PUB CarrierSenseAbs(threshold) | tmp
+' Set absolute change threshold for asserting carrier sense, in dB
+'   Valid values:
+'       %0000..%1111
+'   Any other value polls the chip and returns the current setting
+    readRegX (core#AGCTRL1, 1, @tmp)
+    case threshold
+        %0000..%1111:
+            threshold := threshold & core#BITS_CARRIER_SENSE_ABS_THR
+        OTHER:
+            result := tmp & core#BITS_CARRIER_SENSE_ABS_THR
+
+    tmp &= core#MASK_CARRIER_SENSE_ABS_THR
+    tmp := (tmp | threshold) & core#AGCTRL1_MASK
+    writeRegX (core#AGCTRL1, 1, @tmp)
+
 PUB Channel(chan) | tmp
 ' Set device channel number
 '   Resulting frequency is the channel number multiplied by the channel spacing setting, added to the base frequency
