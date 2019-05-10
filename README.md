@@ -11,6 +11,7 @@ This is a P8X32A/Propeller driver object for Texas Instruments CC1101 low-power 
 * User-set number of preamble bytes
 * Intermediate Frequency from 25kHz to 787kHz
 * On-chip I/O pin signal output configuration (currently a few different common modes available)
+* Carrier frequency can be set to anything within the CC1101's tunable range (with 396Hz resolution)
 
 ## Requirements
 
@@ -19,12 +20,11 @@ This is a P8X32A/Propeller driver object for Texas Instruments CC1101 low-power 
 ## Limitations
 
 * Very early development - feature incomplete and may malfunction or outright fail to build
-* Carrier frequency can currently only be selected from a fixed 315, 433 or 868MHz
 * Available OTA baud rates are currently just common presets from 1k to 500k.
 
 ## TODO
 
-- [ ] TX frequency deviation
+- [x] TX frequency deviation
 - [x] GDO I/O pin config
-- [ ] Fine-grained carrier-freq setting
+- [x] Fine-grained carrier-freq setting
 - [ ] Fine-grained baudrate setting
