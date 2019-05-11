@@ -531,6 +531,23 @@ PUB LNA(gain) | tmp
     tmp := (tmp | gain)
     writeRegX (core#AGCTRL2, 1, @tmp)
 
+PUB MagnTarget(val) | tmp
+' Set target value for averaged amplitude from digital channel filter, in dB
+'   Valid values:
+'       24, 27, 30, 33, 36, 38, 40, 42
+'   Any other value polls the chip and returns the current setting
+    readRegX (core#AGCTRL2, 1, @tmp)
+    case val
+        24, 27, 30, 33, 36, 38, 40, 42:
+            val := lookdownz(val: 24, 27, 30, 33, 36, 38, 40, 42) & core#BITS_MAGN_TARGET
+        OTHER:
+            result := tmp & core#BITS_MAGN_TARGET
+            return lookupz(result: 24, 27, 30, 33, 36, 38, 40, 42)
+
+    tmp &= core#MASK_MAGN_TARGET
+    tmp := (tmp | val)
+    writeRegX (core#AGCTRL2, 1, @tmp)
+
 PUB ManchesterEnc(enabled) | tmp
 ' Enable Manchester encoding/decoding
 '   Valid values: TRUE (-1 or 1), FALSE (0)
