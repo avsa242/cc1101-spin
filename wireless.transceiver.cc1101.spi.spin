@@ -642,6 +642,24 @@ PUB RXData(nr_bytes, buf_addr) | tmp
 '   NOTE: Ensure buffer at address buf_addr is at least as big as the number of bytes you're reading
     readRegX (core#FIFO, nr_bytes, buf_addr)
 
+PUB RXFIFOThresh(threshold) | tmp
+' Set receive FIFO threshold, in bytes
+'   The threshold is exceeded when the number of bytes in the FIFO is greater than or equal to the threshold value.
+'   Valid values: 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64
+'   Any other value polls the chip and returns the current setting
+'   NOTE: This affects the TX FIFO, inversely
+    readRegX (core#FIFOTHR, 1, @tmp)
+    case threshold := lookdown(threshold: 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64)
+        1..16:
+            threshold := (threshold-1) & core#BITS_FIFO_THR
+        OTHER:
+            result := (tmp & core#BITS_FIFO_THR) + 1
+            return lookup(result: 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64)
+
+    tmp &= core#MASK_FIFO_THR
+    tmp := (tmp | threshold) & core#FIFOTHR_MASK
+    writeRegX (core#FIFOTHR, 1, @tmp)
+
 PUB RXOff(next_state) | tmp
 ' Defines the state the radio transitions to after a packet is successfully received
 '   Valid values:
