@@ -507,6 +507,30 @@ PUB IntFreq(kHz) | tmp
 
     writeRegX (core#FSCTRL1, 1, @kHz)
 
+PUB LNA(gain) | tmp
+' Set maximum LNA+LNA2 gain (relative to maximum possible gain)
+'   Valid values:
+'       0 - Maximum possible LNA+LNA2 gain
+'       -2 - ~2.6dB below maximum
+'       -6 - ~6.1dB below maximum
+'       -7 - ~7.4dB below maximum
+'       -9 - ~9.2dB below maximum
+'       -11 - ~11.5dB below maximum
+'       -14 - ~14.6dB below maximum
+'       -17 - ~17.1dB below maximum
+'   Any other value polls the chip and returns the current setting
+    readRegX (core#AGCTRL2, 1, @tmp)
+    case gain
+        0, -2, -6, -7, -9, -11, -14, -17:
+            gain := lookdownz(gain: 0, -2, -6, -7, -9, -11, -14, -17) << core#FLD_MAX_LNA_GAIN
+        OTHER:
+            result := (tmp >> core#FLD_MAX_LNA_GAIN) & core#BITS_MAX_LNA_GAIN
+            return lookupz(result: 0, -2, -6, -7, -9, -11, -14, -17)
+
+    tmp &= core#MASK_MAX_LNA_GAIN
+    tmp := (tmp | gain)
+    writeRegX (core#AGCTRL2, 1, @tmp)
+
 PUB ManchesterEnc(enabled) | tmp
 ' Enable Manchester encoding/decoding
 '   Valid values: TRUE (-1 or 1), FALSE (0)
