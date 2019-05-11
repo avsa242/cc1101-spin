@@ -386,6 +386,17 @@ PUB FIFO
 ' Returns number of bytes available in RX FIFO or free bytes in TX FIFO
     return Status & %1111
 
+PUB FIFORX
+' Returns number of bytes in RX FIFO
+' NOTE: The MSB indicates if the RX FIFO has overflowed.
+    readRegX (core#RXBYTES, 1, @result)
+
+PUB FIFOTX
+' Returns number of bytes in TX FIFO
+' NOTE: The MSB indicates if the TX FIFO is underflowed.
+    readRegX (core#TXBYTES, 1, @result)
+    result &= $7F
+
 PUB FlushRX
 ' Flush receive FIFO/buffer
 '   NOTE: Will only flush RX buffer if overflowed or if chip is idle, per datasheet recommendation
