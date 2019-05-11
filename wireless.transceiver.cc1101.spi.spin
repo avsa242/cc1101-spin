@@ -365,6 +365,26 @@ PUB Deviation(freq) | tmp
     tmp := (tmp | freq)
     writeRegX (core#DEVIATN, 1, @tmp)
 
+PUB DVGA(gain) | tmp
+' Set Digital Variable Gain Amplifier gain maximum level
+'   Valid values:
+'       0 - Highest gain setting
+'       -1 - Highest gain setting-1
+'       -2 - Highest gain setting-2
+'       -3 - Highest gain setting-3
+'   Any other value polls the chip and returns the current setting
+    readRegX (core#AGCTRL2, 1, @tmp)
+    case gain
+        -3..0:
+            gain := ||gain << core#FLD_MAX_DVGA_GAIN
+        OTHER:
+            result := (tmp >> core#FLD_MAX_DVGA_GAIN) & core#BITS_MAX_DVGA_GAIN
+            return result*-1
+
+    tmp &= core#MASK_MAX_DVGA_GAIN
+    tmp := (tmp | gain)
+    writeRegX (core#AGCTRL2, 1, @tmp)
+
 PUB FEC(enabled) | tmp
 ' Enable forward error correction with interleaving
 '   Valid values: TRUE (-1 or 1), FALSE (0)
