@@ -417,6 +417,29 @@ PUB FIFOTX
     readRegX (core#TXBYTES, 1, @result)
     result &= $7F
 
+PUB FilterLength(samples) | tmp
+' For 2FSK, 4FSK, MSK, set averaging length for amplitude from the channel filter, in samples
+' For OOK/ASK, set decision boundary for reception
+'   Valid values:
+'       FSK/MSK     OOK/ASK
+'       Samples     decision boundary
+'       8           4dB
+'       16          8dB
+'       32          12dB
+'       64          16dB
+'   Any other value polls the chip and returns the current setting
+    readRegX (core#AGCTRL0, 1, @tmp)
+    case samples
+        8, 16, 32, 64:
+            samples := lookdownz(samples: 8, 16, 32, 64) & core#BITS_FILTER_LENGTH
+        OTHER:
+            result := tmp & core#BITS_FILTER_LENGTH
+            return lookupz(result: 8, 16, 32, 64)
+
+    tmp &= core#MASK_FILTER_LENGTH
+    tmp := (tmp | samples) & core#AGCTRL0_MASK
+    writeRegX (core#AGCTRL0, 1, @tmp)
+
 PUB FlushRX
 ' Flush receive FIFO/buffer
 '   NOTE: Will only flush RX buffer if overflowed or if chip is idle, per datasheet recommendation
