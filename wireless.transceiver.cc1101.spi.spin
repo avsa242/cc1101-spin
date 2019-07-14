@@ -184,6 +184,12 @@ PUB AutoCal(when) | tmp
     tmp := (tmp | when)
     writeRegX (core#MCSM0, 1, @tmp)'reg, nr_bytes, buf_addr)
 
+PUB CalcFreqWord(Hz)
+
+    result := umath.multdiv (F_XOSC, UM_FACT, Hz)   'Need 64bit math to hold the large scaled up numbers
+    result := umath.multdiv (SIXT, UM_FACT, result)
+    return
+
 PUB CalFreqSynth
 ' Calibrate the frequency synthesizer
     writeRegX (core#CS_SCAL, 0, 0)
@@ -208,6 +214,28 @@ PUB CarrierFreq(Hz) | tmp
             return umath.multdiv (result, UM_FREQ_RES, 1_000_000)
 
     writeRegX (core#FREQ2, 3, @Hz)
+
+PUB CarrierFreqWord(freq_word) | tmp
+' Set carrier/center frequency, by frequency word (use CalcFreqWord to calculate)
+
+'   Any other value polls the chip and returns the current setting
+    readRegX (core#FREQ2, 3, @tmp)
+    case freq_word
+        $0B_89_D9..$0D_62_76, $0E_E2_76..$11_D8_9E, $1D_F6_27..$23_B1_3B:
+            freq_word.byte[3] := freq_word.byte[0]                    'Reverse the byte order - the CC1101 registers are MSB-MB-LSB
+            freq_word.byte[0] := freq_word.byte[2]                    ' but they'd by written LSB-MB-MSB without the swap
+            freq_word.byte[2] := freq_word.byte[3]
+            freq_word.byte[3] := 0
+        OTHER:
+            return tmp
+
+    writeRegX (core#FREQ2, 3, @freq_word)
+
+PUB FreqTable(table_addr, entry_nr, freq_word) | tmp
+
+    byte[table_addr][entry_nr*3] := freq_word.byte[0]
+    byte[table_addr][(entry_nr*3)+1] := freq_word.byte[1]
+    byte[table_addr][(entry_nr*3)+2] := freq_word.byte[2]
 
 PUB CarrierSense(threshold) | tmp
 ' Set relative change threshold for asserting carrier sense, in dB
