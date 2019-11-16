@@ -15,6 +15,7 @@ CON
 ' SPI Configuration
     CPOL                            = 0
     CLK_DELAY                       = 1
+    SCK_MAX_FREQ                    = 6_500_000     'Max freq in burst mode
     MOSI_BITORDER                   = 5             'MSBFIRST
     MISO_BITORDER                   = 0             'MSBPRE
 
