@@ -13,9 +13,12 @@
 CON
 
     F_XOSC                  = 26_000_000        ' CC1101 XTAL Oscillator freq, in Hz
-    SIXT                    = 1 << 16           ' 2^16
+    THIRTN                  = 1 << 13           ' 2^13
+    FOURTN                  = 1 << 14           ' 2^14
+    SIXTN                   = 1 << 16           ' 2^16
+    SEVENTN                 = 1 << 17           ' 2^17
     UM_FACT                 = 1_000_000_000     ' Scale to use in unsigned math object
-    UM_FREQ_RES             = 396_728515        '(F_XOSC / SIXT) * 1_000_000
+    UM_FREQ_RES             = 396_728515        '(F_XOSC / SIXTN) * 1_000_000
 
 ' Auto-calibration state
     NEVER                   = 0
@@ -43,10 +46,12 @@ CON
     MSK                     = %111
 
 ' CC1101 I/O pin output signals
+    TRIG_RXTHRESH           = $00
     TRIG_RXTHRESH_END_PKT   = $01
     TRIG_RXOVERFLOW         = $04
     TRIG_TXUNDERFLOW        = $05
     TRIG_SYNCWORD_TXRX      = $06
+    TRIG_PREAMBLE_QUALITY   = $08
     TRIG_CARRIER            = $0E
     IO_CHIP_RDYn            = $29
     IO_XOSC_STABLE          = $2B
@@ -147,6 +152,21 @@ PUB AddressCheck(check) | tmp
     tmp := (tmp | check) & core#PKTCTRL1_MASK
     writeRegX (core#PKTCTRL1, 1, @tmp)
 
+PUB AGCFilterLen(length) | tmp
+
+    tmp := $00
+    readRegX (core#AGCCTRL0, 1, @tmp)
+    case length
+        8, 16, 32, 64:
+            length := lookdownz(length: 8, 16, 32, 64)
+        OTHER:
+            tmp &= core#BITS_FILTER_LENGTH
+            result := lookupz(tmp: 8, 16, 32, 64)
+
+    tmp &= core#MASK_FILTER_LENGTH
+    tmp := (tmp | length) & core#AGCCTRL0_MASK
+    writeRegX(core#AGCCTRL0, 1, @tmp)
+
 PUB AppendStatus(enabled) | tmp
 ' Append status bytes to packet payload (RSSI, LQI, CRC OK)
 '   Valid values:
@@ -187,7 +207,7 @@ PUB AutoCal(when) | tmp
 PUB CalcFreqWord(Hz)
 
     result := umath.multdiv (F_XOSC, UM_FACT, Hz)   'Need 64bit math to hold the large scaled up numbers
-    result := umath.multdiv (SIXT, UM_FACT, result)
+    result := umath.multdiv (SIXTN, UM_FACT, result)
     return
 
 PUB CalFreqSynth
@@ -204,7 +224,7 @@ PUB CarrierFreq(Hz) | tmp
     case Hz
         300_000_000..348_000_000, 387_000_000..464_000_000, 779_000_000..928_000_000:
             Hz := umath.multdiv (F_XOSC, UM_FACT, Hz)   'Need 64bit math to hold the large scaled up numbers
-            Hz := umath.multdiv (SIXT, UM_FACT, Hz)
+            Hz := umath.multdiv (SIXTN, UM_FACT, Hz)
             Hz.byte[3] := Hz.byte[0]                    'Reverse the byte order - the CC1101 registers are MSB-MB-LSB
             Hz.byte[0] := Hz.byte[2]                    ' but they'd by written LSB-MB-MSB without the swap
             Hz.byte[2] := Hz.byte[3]
@@ -245,7 +265,7 @@ PUB CarrierSense(threshold) | tmp
 '       10: 10dB increase in RSSI
 '       14: 14dB increase in RSSI
 '   Any other value polls the chip and returns the current setting
-    readRegX (core#AGCTRL1, 1, @tmp)
+    readRegX (core#AGCCTRL1, 1, @tmp)
     case threshold
         0, 6, 10, 14:
             threshold := lookdownz(threshold: 0, 6, 10, 14) << core#FLD_CARRIER_SENSE_REL_THR
@@ -254,15 +274,15 @@ PUB CarrierSense(threshold) | tmp
             return lookupz(result: 0, 6, 10, 14)
 
     tmp &= core#MASK_CARRIER_SENSE_REL_THR
-    tmp := (tmp | threshold) & core#AGCTRL1_MASK
-    writeRegX (core#AGCTRL1, 1, @tmp)
+    tmp := (tmp | threshold) & core#AGCCTRL1_MASK
+    writeRegX (core#AGCCTRL1, 1, @tmp)
 
 PUB CarrierSenseAbs(threshold) | tmp
 ' Set absolute change threshold for asserting carrier sense, in dB
 '   Valid values:
 '       %0000..%1111
 '   Any other value polls the chip and returns the current setting
-    readRegX (core#AGCTRL1, 1, @tmp)
+    readRegX (core#AGCCTRL1, 1, @tmp)
     case threshold
         %0000..%1111:
             threshold := threshold & core#BITS_CARRIER_SENSE_ABS_THR
@@ -270,8 +290,8 @@ PUB CarrierSenseAbs(threshold) | tmp
             result := tmp & core#BITS_CARRIER_SENSE_ABS_THR
 
     tmp &= core#MASK_CARRIER_SENSE_ABS_THR
-    tmp := (tmp | threshold) & core#AGCTRL1_MASK
-    writeRegX (core#AGCTRL1, 1, @tmp)
+    tmp := (tmp | threshold) & core#AGCCTRL1_MASK
+    writeRegX (core#AGCCTRL1, 1, @tmp)
 
 PUB Channel(chan) | tmp
 ' Set device channel number
@@ -369,7 +389,7 @@ PUB DCBlock(enabled) | tmp
     tmp := (tmp | enabled)
     writeRegX (core#MDMCFG2, 1, @tmp)
 
-PUB Deviation(freq) | tmp
+PUB Deviation(freq) | tmp, deviat_m, deviat_e, tmp_m
 ' Set frequency deviation from carrier, in Hz
 '   Valid values:
 '       1_586..380_859
@@ -378,19 +398,22 @@ PUB Deviation(freq) | tmp
 '   NOTE: This setting applies to both TX and RX roles. When role is RX, setting must be
 '           approximately correct for reliable demodulation.
 '   Any other value polls the chip and returns the current setting
+    tmp := deviat_e := deviat_m := tmp_m := 0
     readRegX (core#DEVIATN, 1, @tmp)
     case freq
-        80000:
-            freq := $55
-        1586..380859:
-'            freq := freq << core#FLD_FIELDNAME
-            freq := $13
+        1_587..380_859:
+            deviat_e := umath.MultDiv(freq, FOURTN, F_XOSC)
+            deviat_e := log2(deviat_e)
+            tmp_m := F_XOSC * (1 << deviat_e)
+            deviat_m := umath.MultDiv(freq, SEVENTN, tmp_m)
+            tmp := (deviat_e << core#FLD_DEVIATION_E) | deviat_m
         OTHER:
-            result := tmp & core#DEVIATN_MASK
+            deviat_m := tmp & core#BITS_DEVIATION_M
+            deviat_e := (tmp >> core#FLD_DEVIATION_E) & core#BITS_DEVIATION_E
+            result := F_XOSC / SEVENTN * (8 + deviat_m) * (1 << deviat_e)
             return result
 
-    tmp := $00
-    tmp := (tmp | freq)
+    tmp &= core#DEVIATN_MASK
     writeRegX (core#DEVIATN, 1, @tmp)
 
 PUB DVGA(gain) | tmp
@@ -401,7 +424,7 @@ PUB DVGA(gain) | tmp
 '       -2 - Highest gain setting-2
 '       -3 - Highest gain setting-3
 '   Any other value polls the chip and returns the current setting
-    readRegX (core#AGCTRL2, 1, @tmp)
+    readRegX (core#AGCCTRL2, 1, @tmp)
     case gain
         -3..0:
             gain := ||gain << core#FLD_MAX_DVGA_GAIN
@@ -411,7 +434,7 @@ PUB DVGA(gain) | tmp
 
     tmp &= core#MASK_MAX_DVGA_GAIN
     tmp := (tmp | gain)
-    writeRegX (core#AGCTRL2, 1, @tmp)
+    writeRegX (core#AGCCTRL2, 1, @tmp)
 
 PUB FEC(enabled) | tmp
 ' Enable forward error correction with interleaving
@@ -434,10 +457,12 @@ PUB FIFO
 ' Returns number of bytes available in RX FIFO or free bytes in TX FIFO
     return Status & %1111
 
-PUB FIFORX
+PUB FIFORX | tmp
 ' Returns number of bytes in RX FIFO
 ' NOTE: The MSB indicates if the RX FIFO has overflowed.
-    readRegX (core#RXBYTES, 1, @result)
+    tmp := $00
+    readRegX (core#RXBYTES, 1, @tmp)
+    return tmp & $FF
 
 PUB FIFOTX
 ' Returns number of bytes in TX FIFO
@@ -456,7 +481,7 @@ PUB FilterLength(samples) | tmp
 '       32          12dB
 '       64          16dB
 '   Any other value polls the chip and returns the current setting
-    readRegX (core#AGCTRL0, 1, @tmp)
+    readRegX (core#AGCCTRL0, 1, @tmp)
     case samples
         8, 16, 32, 64:
             samples := lookdownz(samples: 8, 16, 32, 64) & core#BITS_FILTER_LENGTH
@@ -465,8 +490,8 @@ PUB FilterLength(samples) | tmp
             return lookupz(result: 8, 16, 32, 64)
 
     tmp &= core#MASK_FILTER_LENGTH
-    tmp := (tmp | samples) & core#AGCTRL0_MASK
-    writeRegX (core#AGCTRL0, 1, @tmp)
+    tmp := (tmp | samples) & core#AGCCTRL0_MASK
+    writeRegX (core#AGCCTRL0, 1, @tmp)
 
 PUB FlushRX
 ' Flush receive FIFO/buffer
@@ -570,7 +595,7 @@ PUB LNA(gain) | tmp
 '       -14 - ~14.6dB below maximum
 '       -17 - ~17.1dB below maximum
 '   Any other value polls the chip and returns the current setting
-    readRegX (core#AGCTRL2, 1, @tmp)
+    readRegX (core#AGCCTRL2, 1, @tmp)
     case gain
         0, -2, -6, -7, -9, -11, -14, -17:
             gain := lookdownz(gain: 0, -2, -6, -7, -9, -11, -14, -17) << core#FLD_MAX_LNA_GAIN
@@ -580,14 +605,14 @@ PUB LNA(gain) | tmp
 
     tmp &= core#MASK_MAX_LNA_GAIN
     tmp := (tmp | gain)
-    writeRegX (core#AGCTRL2, 1, @tmp)
+    writeRegX (core#AGCCTRL2, 1, @tmp)
 
 PUB MagnTarget(val) | tmp
 ' Set target value for averaged amplitude from digital channel filter, in dB
 '   Valid values:
 '       24, 27, 30, 33, 36, 38, 40, 42
 '   Any other value polls the chip and returns the current setting
-    readRegX (core#AGCTRL2, 1, @tmp)
+    readRegX (core#AGCCTRL2, 1, @tmp)
     case val
         24, 27, 30, 33, 36, 38, 40, 42:
             val := lookdownz(val: 24, 27, 30, 33, 36, 38, 40, 42) & core#BITS_MAGN_TARGET
@@ -597,7 +622,7 @@ PUB MagnTarget(val) | tmp
 
     tmp &= core#MASK_MAGN_TARGET
     tmp := (tmp | val)
-    writeRegX (core#AGCTRL2, 1, @tmp)
+    writeRegX (core#AGCCTRL2, 1, @tmp)
 
 PUB ManchesterEnc(enabled) | tmp
 ' Enable Manchester encoding/decoding
@@ -896,6 +921,18 @@ PUB WOR
 ' Change chip state to WOR (Wake-on-Radio)
     writeRegX (core#CS_SWOR, 0, 0)
 
+PRI log2(num) | tmp
+' Return log2 of num
+    tmp := 0
+    case num > 1
+        TRUE:
+            repeat
+                num >>= 1
+                tmp++
+            until num == 1
+        FALSE:
+    return tmp
+
 PUB readRegX(reg, nr_bytes, addr_buff) | i
 ' Read nr_bytes from register 'reg' to address 'addr_buff'
     case reg
@@ -915,6 +952,15 @@ PUB readRegX(reg, nr_bytes, addr_buff) | i
                     reg |= core#BURST
                 0:
                     return
+            reg |= core#R
+
+            outa[_CS] := 0
+            spi.SHIFTOUT(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
+            repeat i from nr_bytes-1 to 0
+                byte[addr_buff][i] := spi.SHIFTIN(_MISO, _SCK, core#MISO_BITORDER, 8)
+            outa[_CS] := 1
+            return
+
     reg |= core#R
 
     outa[_CS] := 0
