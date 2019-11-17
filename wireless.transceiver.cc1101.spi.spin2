@@ -506,18 +506,14 @@ PUB FEC(enabled=-2) | tmp
     tmp := (tmp | enabled) & core#MDMCFG1_MASK
     writeReg (core#MDMCFG1, 1, @tmp)
 
-PUB FIFO
-' Returns number of bytes available in RX FIFO or free bytes in TX FIFO
-    return Status & %1111
-
-PUB FIFORX | tmp
+PUB FIFORXBytes | tmp
 ' Returns number of bytes in RX FIFO
 ' NOTE: The MSB indicates if the RX FIFO has overflowed.
     tmp := $00
     readReg (core#RXBYTES, 1, @tmp)
     return tmp & $FF
 
-PUB FIFOTX
+PUB FIFOTXBytes
 ' Returns number of bytes in TX FIFO
 ' NOTE: The MSB indicates if the TX FIFO is underflowed.
     result := $00
