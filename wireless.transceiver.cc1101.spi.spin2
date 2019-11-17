@@ -80,6 +80,12 @@ CON
     ADRCHK_CHK_00_BCAST     = 2
     ADRCHK_CHK_00_FF_BCAST  = 3
 
+' AGC modes
+    AGC_NORMAL              = %00
+    AGC_FREEZE_ON_SYNC      = %01
+    AGC_FREEZE_A_AUTO_D     = %10
+    AGC_OFF                 = %11
+
 VAR
 
     byte _CS, _MOSI, _MISO, _SCK
@@ -116,7 +122,7 @@ PUB Stop
 
 '
 
-PUB Address(addr) | tmp
+PUB Address(addr=-2) | tmp
 ' Set address used for packet filtration
 '   Valid values: $00..$FF (000-255)
 '   Any other value polls the chip and returns the current setting
@@ -131,7 +137,7 @@ PUB Address(addr) | tmp
     addr &= core#ADDR_MASK
     writeReg (core#ADDR, 1, @addr)
 
-PUB AddressCheck(check) | tmp
+PUB AddressCheck(check=-2) | tmp
 ' Short descr
 '   Valid values:
 '       ADRCHK_NONE (0): No address check
@@ -151,7 +157,27 @@ PUB AddressCheck(check) | tmp
     tmp := (tmp | check) & core#PKTCTRL1_MASK
     writeReg (core#PKTCTRL1, 1, @tmp)
 
-PUB AGCFilterLen(length) | tmp
+PUB AGC(mode=-2) | tmp
+' Set AGC mode
+'   Valid values:
+'      *AGC_NORMAL (0): Always adjust gain when required
+'       AGC_FREEZE_ON_SYNC (1): Gain setting is frozen when a sync word has been found
+'       AGC_FREEZE_A_AUTO_D (2): Freeze analog gain, but autmatically adjust digital gain
+'       AGC_OFF (3): Freeze both analog and digital gain settings
+    tmp := $00
+    readReg (core#AGCCTRL0, 1, @tmp)
+    case mode
+        AGC_NORMAL, AGC_FREEZE_ON_SYNC, AGC_FREEZE_A_AUTO_D, AGC_OFF:
+            mode <<= core#FLD_AGC_FREEZE
+        OTHER:
+            result := (tmp >> core#FLD_AGC_FREEZE) & core#BITS_AGC_FREEZE
+            return
+
+    tmp &= core#MASK_AGC_FREEZE
+    tmp := (tmp | mode) & core#AGCCTRL0_MASK
+    writeReg(core#AGCCTRL0, 1, @tmp)
+
+PUB AGCFilterLen(length=-2) | tmp
 
     tmp := $00
     readReg (core#AGCCTRL0, 1, @tmp)
@@ -161,12 +187,13 @@ PUB AGCFilterLen(length) | tmp
         OTHER:
             tmp &= core#BITS_FILTER_LENGTH
             result := lookupz(tmp: 8, 16, 32, 64)
+            return
 
     tmp &= core#MASK_FILTER_LENGTH
     tmp := (tmp | length) & core#AGCCTRL0_MASK
     writeReg(core#AGCCTRL0, 1, @tmp)
 
-PUB AppendStatus(enabled) | tmp
+PUB AppendStatus(enabled=-2) | tmp
 ' Append status bytes to packet payload (RSSI, LQI, CRC OK)
 '   Valid values:
 '      *TRUE (-1 or 1)
@@ -185,7 +212,7 @@ PUB AppendStatus(enabled) | tmp
     tmp := (tmp | enabled) & core#PKTCTRL1_MASK
     writeReg (core#PKTCTRL1, 1, @tmp)
 
-PUB AutoCal(when) | tmp
+PUB AutoCal(when=-2) | tmp
 ' When to perform auto-calibration
 '   Valid values:
 '       NEVER (0) - Never (manually calibrate)
@@ -215,7 +242,7 @@ PUB CalFreqSynth
 ' Calibrate the frequency synthesizer
     writeReg (core#CS_SCAL, 0, 0)
 
-PUB CarrierFreq(Hz) | tmp
+PUB CarrierFreq(Hz=-2) | tmp
 ' Set carrier/center frequency, in Hz
 '   Valid values:
 '       300_000_000..348_000_000, 387_000_000..464_000_000, 779_000_000..928_000_000
@@ -237,7 +264,7 @@ PUB CarrierFreq(Hz) | tmp
 
     writeReg (core#FREQ2, 3, @Hz)
 
-PUB CarrierFreqWord(freq_word) | tmp
+PUB CarrierFreqWord(freq_word=-2) | tmp
 ' Set carrier/center frequency, by frequency word (use CalcFreqWord to calculate)
 
 '   Any other value polls the chip and returns the current setting
@@ -260,7 +287,7 @@ PUB FreqTable(table_addr, entry_nr, freq_word) | tmp
     byte[table_addr][(entry_nr*3)+1] := freq_word.byte[1]
     byte[table_addr][(entry_nr*3)+2] := freq_word.byte[2]
 
-PUB CarrierSense(threshold) | tmp
+PUB CarrierSense(threshold=-2) | tmp
 ' Set relative change threshold for asserting carrier sense, in dB
 '   Valid values:
 '       0: Disabled
@@ -281,7 +308,7 @@ PUB CarrierSense(threshold) | tmp
     tmp := (tmp | threshold) & core#AGCCTRL1_MASK
     writeReg (core#AGCCTRL1, 1, @tmp)
 
-PUB CarrierSenseAbs(threshold) | tmp
+PUB CarrierSenseAbs(threshold=-2) | tmp
 ' Set absolute change threshold for asserting carrier sense, in dB
 '   Valid values:
 '       %0000..%1111
@@ -298,7 +325,7 @@ PUB CarrierSenseAbs(threshold) | tmp
     tmp := (tmp | threshold) & core#AGCCTRL1_MASK
     writeReg (core#AGCCTRL1, 1, @tmp)
 
-PUB Channel(chan) | tmp
+PUB Channel(chan=-2) | tmp
 ' Set device channel number
 '   Resulting frequency is the channel number multiplied by the channel spacing setting, added to the base frequency
 '   Valid values: 0..255
@@ -313,7 +340,7 @@ PUB Channel(chan) | tmp
     chan &= core#CHANNR_MASK
     writeReg (core#CHANNR, 1, @chan)
 
-PUB CRCCheck(enabled) | tmp
+PUB CRCCheck(enabled=-2) | tmp
 ' Enable CRC calc (TX) and check (RX)
 '   Valid values:
 '      *TRUE (-1 or 1)
@@ -332,7 +359,7 @@ PUB CRCCheck(enabled) | tmp
     tmp := (tmp | enabled) & core#PKTCTRL0_MASK
     writeReg (core#PKTCTRL0, 1, @tmp)
 
-PUB CRCAutoFlush(enabled) | tmp
+PUB CRCAutoFlush(enabled=-2) | tmp
 ' Enable automatic flush of RX FIFO when CRC check fails
 '   Valid values:
 '       TRUE (-1 or 1)
@@ -355,7 +382,7 @@ PUB CrystalOff
 ' Turn off crystal oscillator
     writeReg (core#CS_SXOFF, 0, 0)
 
-PUB DataRate(Baud) | tmp, tmp_e, tmp_m, DRATE_E, DRATE_M
+PUB DataRate(Baud=-2) | tmp, tmp_e, tmp_m, DRATE_E, DRATE_M
 ' Set on-air data rate, in bps
 '   Valid values: 1000, 1200, 2400, 4800, 9600, 19_600, 38_400, 76_800, 153_600, 250_000, 500_000
 '   Any other value polls the chip and returns the current setting
@@ -379,7 +406,7 @@ PUB DataRate(Baud) | tmp, tmp_e, tmp_m, DRATE_E, DRATE_M
     writeReg (core#MDMCFG4, 1, @tmp_e)
     writeReg (core#MDMCFG3, 1, @DRATE_M)
 
-PUB DCBlock(enabled) | tmp
+PUB DCBlock(enabled=-2) | tmp
 ' Enable digital DC blocking filter (before demod)
 '   Valid values: TRUE (-1 or 1), FALSE
 '   Any other value polls the chip and returns the current setting
@@ -398,7 +425,7 @@ PUB DCBlock(enabled) | tmp
     tmp := (tmp | enabled)
     writeReg (core#MDMCFG2, 1, @tmp)
 
-PUB Deviation(freq) | tmp, deviat_m, deviat_e, tmp_m
+PUB Deviation(freq=-2) | tmp, deviat_m, deviat_e, tmp_m
 ' Set frequency deviation from carrier, in Hz
 '   Valid values:
 '       1_586..380_859
@@ -425,10 +452,10 @@ PUB Deviation(freq) | tmp, deviat_m, deviat_e, tmp_m
     tmp &= core#DEVIATN_MASK
     writeReg (core#DEVIATN, 1, @tmp)
 
-PUB DVGA(gain) | tmp
+PUB DVGA(gain=-255) | tmp
 ' Set Digital Variable Gain Amplifier gain maximum level
 '   Valid values:
-'       0 - Highest gain setting
+'      *0 - Highest gain setting
 '       -1 - Highest gain setting-1
 '       -2 - Highest gain setting-2
 '       -3 - Highest gain setting-3
@@ -446,7 +473,7 @@ PUB DVGA(gain) | tmp
     tmp := (tmp | gain)
     writeReg (core#AGCCTRL2, 1, @tmp)
 
-PUB FEC(enabled) | tmp
+PUB FEC(enabled=-2) | tmp
 ' Enable forward error correction with interleaving
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
@@ -482,7 +509,7 @@ PUB FIFOTX
     readReg (core#TXBYTES, 1, @result)
     result &= $7F
 
-PUB FilterLength(samples) | tmp
+PUB FilterLength(samples=-2) | tmp
 ' For 2FSK, 4FSK, MSK, set averaging length for amplitude from the channel filter, in samples
 ' For OOK/ASK, set decision boundary for reception
 '   Valid values:
@@ -528,7 +555,7 @@ PUB FSTX
 ' Enable frequency synthesizer and calibrate
     writeReg (core#CS_SFSTXON, 0, 0)
 
-PUB GDO0(config) | tmp
+PUB GDO0(config=-2) | tmp
 ' Configure test signal output on GD0 pin
 '   Valid values: $00..$0F, $16..$17, $1B..$1D, $24..$39, $41, $43, $46..$3F
 '   Any other value polls the chip and returns the current setting
@@ -547,7 +574,7 @@ PUB GDO0(config) | tmp
     tmp := (tmp | config)
     writeReg (core#IOCFG0, 1, @tmp)
 
-PUB GDO1(config) | tmp
+PUB GDO1(config=-2) | tmp
 ' Configure test signal output on GD0 pin
 '   Valid values: $00..$0F, $16..$17, $1B..$1D, $24..$39, $41, $43, $46..$3F
 '   Any other value polls the chip and returns the current setting
@@ -565,7 +592,7 @@ PUB GDO1(config) | tmp
     tmp := (tmp | config)
     writeReg (core#IOCFG1, 1, @tmp)
 
-PUB GDO2(config) | tmp
+PUB GDO2(config=-2) | tmp
 ' Configure test signal output on GD0 pin
 '   Valid values: $00..$0F, $16..$17, $1B..$1D, $24..$39, $41, $43, $46..$3F
 '   Any other value polls the chip and returns the current setting
@@ -586,7 +613,7 @@ PUB Idle
 ' Change chip state to IDLE
     writeReg (core#CS_SIDLE, 0, 0)
 
-PUB IntFreq(kHz) | tmp
+PUB IntFreq(kHz=-2) | tmp
 ' Intermediate Frequency (IF), in kHz
 '   Valid values: 25..787 (result will be rounded to the nearest 5-bit result)
 '   Any other value polls the chip and returns the current setting
@@ -600,10 +627,10 @@ PUB IntFreq(kHz) | tmp
 
     writeReg (core#FSCTRL1, 1, @kHz)
 
-PUB LNA(gain) | tmp
+PUB LNA(gain=-255) | tmp
 ' Set maximum LNA+LNA2 gain (relative to maximum possible gain)
 '   Valid values:
-'       0 - Maximum possible LNA+LNA2 gain
+'      *0 - Maximum possible LNA+LNA2 gain
 '       -2 - ~2.6dB below maximum
 '       -6 - ~6.1dB below maximum
 '       -7 - ~7.4dB below maximum
@@ -625,10 +652,10 @@ PUB LNA(gain) | tmp
     tmp := (tmp | gain)
     writeReg (core#AGCCTRL2, 1, @tmp)
 
-PUB MagnTarget(val) | tmp
+PUB MagnTarget(val=-2) | tmp
 ' Set target value for averaged amplitude from digital channel filter, in dB
 '   Valid values:
-'       24, 27, 30, 33, 36, 38, 40, 42
+'       24, 27, 30, *33, 36, 38, 40, 42
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg (core#AGCCTRL2, 1, @tmp)
@@ -643,7 +670,7 @@ PUB MagnTarget(val) | tmp
     tmp := (tmp | val)
     writeReg (core#AGCCTRL2, 1, @tmp)
 
-PUB ManchesterEnc(enabled) | tmp
+PUB ManchesterEnc(enabled=-2) | tmp
 ' Enable Manchester encoding/decoding
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
@@ -660,7 +687,7 @@ PUB ManchesterEnc(enabled) | tmp
     tmp := (tmp | enabled)
     writeReg (core#MDMCFG2, 1, @tmp)
 
-PUB Modulation(format) | tmp
+PUB Modulation(format=-2) | tmp
 ' Set modulation of transmitted or expected signal
 '   Valid values:
 '       FSK2 (%000): 2-level or binary Frequency Shift-Keyed
@@ -682,10 +709,10 @@ PUB Modulation(format) | tmp
     tmp := (tmp | format)
     writeReg (core#MDMCFG2, 1, @tmp)
 
-PUB PacketLen(length) | tmp
+PUB PacketLen(length=-2) | tmp
 ' Set packet length, when using fixed packet length mode,
 '   or maximum packet length when using variable packet length mode.
-'   Valid values: 1..255
+'   Valid values: 1..*255
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg (core#PKTLEN, 1, @tmp)
@@ -697,7 +724,7 @@ PUB PacketLen(length) | tmp
 
     writeReg (core#PKTLEN, 1, @length)
 
-PUB PacketLenCfg(mode) | tmp
+PUB PacketLenCfg(mode=-2) | tmp
 ' Set packet length mode
 '   Valid values:
 '       PKTLEN_FIXED (0): Fixed packet length mode. Set length with PacketLen
@@ -730,9 +757,9 @@ PUB PAWrite(buf_addr)
 '   NOTE: Table will be written starting at index 0 from the LSB of buf_addr
     writeReg (core#PATABLE | core#BURST, 8, buf_addr)
 
-PUB Preamble(bytes) | tmp
+PUB Preamble(bytes=-2) | tmp
 ' Set number of preamble bytes
-'   Valid values: 2, 3, 4, 6, 8, 12, 16, 24
+'   Valid values: 2, 3, *4, 6, 8, 12, 16, 24
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg (core#MDMCFG1, 1, @tmp)
@@ -747,7 +774,7 @@ PUB Preamble(bytes) | tmp
     tmp := (tmp | bytes)
     writeReg (core#MDMCFG1, 1, @tmp)
 
-PUB PreambleQual(threshold) | tmp
+PUB PreambleQual(threshold=-2) | tmp
 ' Set Preamble quality estimator threshold
 '   Valid values: 0, 4, 8, 12, 16, 20, 24, 28
 '   NOTE: If 0, the sync word is always accepted.
@@ -782,9 +809,9 @@ PUB RX
 ' Change chip state to RX (receive)
     writeReg (core#CS_SRX, 0, 0)
 
-PUB RXBandwidth(kHz) | tmp
+PUB RXBandwidth(kHz=-2) | tmp
 ' Set receiver channel filter bandwidth, in kHz
-'   Valid values: 812, 650, 541, 464, 406, 325, 270, 232, 203, 162, 135, 116, 102, 81, 68, 58
+'   Valid values: 812, 650, 541, 464, 406, 325, 270, 232, *203, 162, 135, 116, 102, 81, 68, 58
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg (core#MDMCFG4, 1, @tmp)
@@ -806,7 +833,7 @@ PUB RXData(nr_bytes, buf_addr) | tmp
 '   NOTE: Ensure buffer at address buf_addr is at least as big as the number of bytes you're reading
     readReg (core#FIFO, nr_bytes, buf_addr)
 
-PUB RXFIFOThresh(threshold) | tmp
+PUB RXFIFOThresh(threshold=-2) | tmp
 ' Set receive FIFO threshold, in bytes
 '   The threshold is exceeded when the number of bytes in the FIFO is greater than or equal to the threshold value.
 '   Valid values: 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64
@@ -825,7 +852,7 @@ PUB RXFIFOThresh(threshold) | tmp
     tmp := (tmp | threshold) & core#FIFOTHR_MASK
     writeReg (core#FIFOTHR, 1, @tmp)
 
-PUB RXOff(next_state) | tmp
+PUB RXOff(next_state=-2) | tmp
 ' Defines the state the radio transitions to after a packet is successfully received
 '   Valid values:
 '       RXOFF_IDLE (0) - Idle state
@@ -859,7 +886,7 @@ PUB Status
     writeReg (core#CS_SNOP, 0, 0)
     return _status_byte
 
-PUB SyncMode(mode) | tmp
+PUB SyncMode(mode=-2) | tmp
 ' Set sync-word qualifier mode
 '   Valid values:
 '       SYNCMODE_NONE (0): No preamble or syncword
@@ -882,9 +909,9 @@ PUB SyncMode(mode) | tmp
     tmp := (tmp | mode) & core#MDMCFG2_MASK
     writeReg (core#MDMCFG2, 1, @tmp)
 
-PUB SyncWord(sync_word) | tmp
+PUB SyncWord(sync_word=-2) | tmp
 ' Set transmitted (TX) or expected (RX) sync word
-'   Valid values: $0000..$FFFF
+'   Valid values: $0000..$FFFF (default is $D391)
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg (core#SYNC1, 2, @tmp)
@@ -905,7 +932,7 @@ PUB TXData(nr_bytes, buf_addr)
 '   Any other value is ignored
     writeReg (core#FIFO, nr_bytes, buf_addr)
 
-PUB TXOff(next_state) | tmp
+PUB TXOff(next_state=-2) | tmp
 ' Defines the state the radio transitions to after a packet is successfully transmitted
 '   Valid values:
 '       TXOFF_IDLE (0) - Idle state
@@ -932,7 +959,7 @@ PUB Version
 '   NOTE: Datasheet states this value is subject to change without notice
     readReg (core#VERSION, 1, @result)
 
-PUB WhiteData(enabled) | tmp
+PUB WhiteData(enabled=-2) | tmp
 ' Enable data whitening
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
