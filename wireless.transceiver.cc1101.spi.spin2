@@ -138,7 +138,7 @@ PUB Address(addr=-2) | tmp
     addr &= core#ADDR_MASK
     writeReg (core#ADDR, 1, @addr)
 
-PUB AddressCheck(check=-2) | tmp
+PUB AddressCheck(mode=-2) | tmp
 ' Short descr
 '   Valid values:
 '      *ADRCHK_NONE (0): No address check
@@ -148,14 +148,14 @@ PUB AddressCheck(check=-2) | tmp
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg (core#PKTCTRL1, 1, @tmp)
-    case check
+    case mode
         0..3:
-            check := check & core#BITS_ADR_CHK
+            mode := mode & core#BITS_ADR_CHK
         OTHER:
             return tmp & core#BITS_ADR_CHK
 
     tmp &= core#MASK_ADR_CHK
-    tmp := (tmp | check) & core#PKTCTRL1_MASK
+    tmp := (tmp | mode) & core#PKTCTRL1_MASK
     writeReg (core#PKTCTRL1, 1, @tmp)
 
 PUB AGC(mode=-2) | tmp
