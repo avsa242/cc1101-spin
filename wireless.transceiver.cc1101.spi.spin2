@@ -113,7 +113,7 @@ PUB Start(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ): okay
 
             io.High(_CS)
             io.Output(_CS)
-            if lookup(Version: $04, $14..$FE)                                   'Poll chip for version
+            if lookdown(ChipID: $04, $14..$FE)                                   'Poll chip for version
                 return okay
 
     return FALSE                                                                'If we got here, something went wrong
@@ -395,6 +395,12 @@ PUB Channel(number=-2) | tmp
 
     number &= core#CHANNR_MASK
     writeReg (core#CHANNR, 1, @number)
+
+PUB ChipID
+' Chip version number
+'   Returns: $04 (Rev. E), $14 (Rev. I)
+'   NOTE: Datasheet states this value is subject to change without notice
+    readReg (core#VERSION, 1, @result)
 
 PUB CRCCheck(enabled=-2) | tmp
 ' Enable CRC calc (TX) and check (RX)
@@ -773,15 +779,15 @@ PUB PacketLenCfg(mode=-2) | tmp
     tmp := (tmp | mode) & core#PKTCTRL0_MASK
     writeReg (core#PKTCTRL0, 1, @tmp)
 
-PUB PartNumber
-' Part number of device
-'   Returns: $00
-    readReg (core#PARTNUM, 1, @result)
-
 PUB PARead(buf_addr)
 ' Read 8-byte PA table into buf_addr
 '   NOTE: Ensure buf_addr is at least 8 bytes
     readReg (core#PATABLE | core#BURST, 8, buf_addr)
+
+PUB PartNumber
+' Part number of device
+'   Returns: $00
+    readReg (core#PARTNUM, 1, @result)
 
 PUB PAWrite(buf_addr)
 ' Write 8-byte PA table from buf_addr
