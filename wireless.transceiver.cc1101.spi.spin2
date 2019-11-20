@@ -836,7 +836,7 @@ PUB PLLLocked
     readReg (core#FSCAL1, 1, @result)
     return (result <> $3F), result
 
-PUB Preamble(bytes=-2) | tmp
+PUB PreambleLen(bytes=-2) | tmp
 ' Set number of preamble bytes
 '   Valid values: 2, 3, *4, 6, 8, 12, 16, 24
 '   Any other value polls the chip and returns the current setting
