@@ -402,7 +402,7 @@ PUB ChipID
 '   NOTE: Datasheet states this value is subject to change without notice
     readReg (core#VERSION, 1, @result)
 
-PUB CRCCheck(enabled=-2) | tmp
+PUB CRCCheckEnabled(enabled=-2) | tmp
 ' Enable CRC calc (TX) and check (RX)
 '   Valid values:
 '      *TRUE (-1 or 1)
