@@ -469,6 +469,24 @@ PUB DataRate(Baud=-2) | tmp, tmp_e, tmp_m, DRATE_E, DRATE_M
     writeReg (core#MDMCFG4, 1, @tmp_e)
     writeReg (core#MDMCFG3, 1, @DRATE_M)
 
+PUB DataWhitening(enabled=-2) | tmp
+' Enable data whitening
+'   Valid values: *TRUE (-1 or 1), FALSE (0)
+'   Any other value polls the chip and returns the current setting
+'   NOTE: Applies to all data, except the preamble and sync word.
+    tmp := $00
+    readReg (core#PKTCTRL0, 1, @tmp)
+    case ||enabled
+        0, 1:
+            enabled := (||enabled) << core#FLD_WHITE_DATA
+        OTHER:
+            result := ((tmp >> core#FLD_WHITE_DATA) & %1) * TRUE
+            return result
+
+    tmp &= core#MASK_WHITE_DATA
+    tmp := (tmp | enabled)
+    writeReg (core#PKTCTRL0, 1, @tmp)
+
 PUB DCBlock(enabled=-2) | tmp
 ' Enable digital DC blocking filter (before demod)
 '   Valid values: *TRUE (-1 or 1), FALSE
@@ -961,24 +979,6 @@ PUB Version
 '   Returns: $04 (Rev. E), $14 (Rev. I)
 '   NOTE: Datasheet states this value is subject to change without notice
     readReg (core#VERSION, 1, @result)
-
-PUB WhiteData(enabled=-2) | tmp
-' Enable data whitening
-'   Valid values: *TRUE (-1 or 1), FALSE (0)
-'   Any other value polls the chip and returns the current setting
-'   NOTE: Applies to all data, except the preamble and sync word.
-    tmp := $00
-    readReg (core#PKTCTRL0, 1, @tmp)
-    case ||enabled
-        0, 1:
-            enabled := (||enabled) << core#FLD_WHITE_DATA
-        OTHER:
-            result := ((tmp >> core#FLD_WHITE_DATA) & %1) * TRUE
-            return result
-
-    tmp &= core#MASK_WHITE_DATA
-    tmp := (tmp | enabled)
-    writeReg (core#PKTCTRL0, 1, @tmp)
 
 PUB WOR
 ' Change chip state to WOR (Wake-on-Radio)
