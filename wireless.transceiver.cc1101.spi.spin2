@@ -764,21 +764,6 @@ PUB NodeAddress(addr=-2) | tmp
     addr &= core#ADDR_MASK
     writeReg (core#ADDR, 1, @addr)
 
-PUB PacketLen(length=-2) | tmp
-' Set packet length, when using fixed packet length mode,
-'   or maximum packet length when using variable packet length mode.
-'   Valid values: 1..*255
-'   Any other value polls the chip and returns the current setting
-    tmp := $00
-    readReg (core#PKTLEN, 1, @tmp)
-    case length
-        1..255:
-            length &= core#PKTLEN_MASK
-        OTHER:
-            return tmp & core#PKTLEN_MASK
-
-    writeReg (core#PKTLEN, 1, @length)
-
 PUB PacketLenCfg(mode=-2) | tmp
 ' Set packet length mode
 '   Valid values:
@@ -811,6 +796,39 @@ PUB PAWrite(buf_addr)
 ' Write 8-byte PA table from buf_addr
 '   NOTE: Table will be written starting at index 0 from the LSB of buf_addr
     writeReg (core#PATABLE | core#BURST, 8, buf_addr)
+
+PUB PayloadLen(length=-2) | tmp
+' Set payload length, when using fixed payload length mode,
+'   or maximum payload length when using variable payload length mode.
+'   Valid values: 1..*255
+'   Any other value polls the chip and returns the current setting
+    tmp := $00
+    readReg (core#PKTLEN, 1, @tmp)
+    case length
+        1..255:
+            length &= core#PKTLEN_MASK
+        OTHER:
+            return tmp & core#PKTLEN_MASK
+
+    writeReg (core#PKTLEN, 1, @length)
+
+PUB PayloadLenCfg(mode=-2) | tmp
+' Set payload length mode
+'   Valid values:
+'       PKTLEN_FIXED (0): Fixed payload length mode. Set length with PayloadLen
+'      *PKTLEN_VAR (1): Variable payload length mode. Payload length set by first byte after sync word
+'       PKTLEN_INF (2): Infinite payload length mode.
+'   Any other value polls the chip and returns the current setting
+    tmp := $00
+    readReg (core#PKTCTRL0, 1, @tmp)
+    case mode
+        0..2:
+        OTHER:
+            return tmp & core#BITS_LENGTH_CONFIG
+
+    tmp &= core#MASK_LENGTH_CONFIG
+    tmp := (tmp | mode) & core#PKTCTRL0_MASK
+    writeReg (core#PKTCTRL0, 1, @tmp)
 
 PUB PLLLocked
 ' Indicates PLL is locked
