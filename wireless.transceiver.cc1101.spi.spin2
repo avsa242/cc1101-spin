@@ -682,7 +682,7 @@ PUB IntFreq(kHz=-2) | tmp
 
     writeReg (core#FSCTRL1, 1, @kHz)
 
-PUB LNA(gain=-255) | tmp
+PUB LNAGain(dB=-255) | tmp
 ' Set maximum LNA+LNA2 gain (relative to maximum possible gain)
 '   Valid values:
 '       *0 - Maximum possible LNA+LNA2 gain
