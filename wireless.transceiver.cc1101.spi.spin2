@@ -122,22 +122,6 @@ PUB Stop
 
 '
 
-PUB Address(addr=-2) | tmp
-' Set address used for packet filtration
-'   Valid values: $00..$FF (000-255)
-'   Default value: $00
-'   Any other value polls the chip and returns the current setting
-'   NOTE: $00 and $FF can be used as broadcast addresses.
-    tmp := $00
-    readReg (core#ADDR, 1, @tmp)
-    case addr
-        $00..$FF:
-        OTHER:
-            return tmp
-
-    addr &= core#ADDR_MASK
-    writeReg (core#ADDR, 1, @addr)
-
 PUB AddressCheck(mode=-2) | tmp
 ' Enable address checking/matching/filtering
 '   Valid values:
@@ -696,15 +680,15 @@ PUB LNAGain(dB=-255) | tmp
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg (core#AGCCTRL2, 1, @tmp)
-    case gain
+    case dB
         0, -2, -6, -7, -9, -11, -14, -17:
-            gain := lookdownz(gain: 0, -2, -6, -7, -9, -11, -14, -17) << core#FLD_MAX_LNA_GAIN
+            dB := lookdownz(dB: 0, -2, -6, -7, -9, -11, -14, -17) << core#FLD_MAX_LNA_GAIN
         OTHER:
             result := (tmp >> core#FLD_MAX_LNA_GAIN) & core#BITS_MAX_LNA_GAIN
             return lookupz(result: 0, -2, -6, -7, -9, -11, -14, -17)
 
     tmp &= core#MASK_MAX_LNA_GAIN
-    tmp := (tmp | gain)
+    tmp := (tmp | dB)
     writeReg (core#AGCCTRL2, 1, @tmp)
 
 PUB MagnTarget(val=-2) | tmp
@@ -742,7 +726,7 @@ PUB ManchesterEnc(enabled=-2) | tmp
     tmp := (tmp | enabled)
     writeReg (core#MDMCFG2, 1, @tmp)
 
-PUB Modulation(format=-2) | tmp
+PUB Modulation(type=-2) | tmp
 ' Set modulation of transmitted or expected signal
 '   Valid values:
 '      *FSK2 (%000): 2-level or binary Frequency Shift-Keyed
@@ -754,15 +738,31 @@ PUB Modulation(format=-2) | tmp
 '   NOTE: MSK supported only at baud rates greater than 26k
     tmp := $00
     readReg (core#MDMCFG2, 1, @tmp)
-    case format
+    case type
         FSK2, GFSK, ASKOOK, FSK4, MSK:
-            format := format << core#FLD_MOD_FORMAT
+            type := type << core#FLD_MOD_FORMAT
         OTHER:
             return (tmp >> core#FLD_MOD_FORMAT) & core#BITS_MOD_FORMAT
 
     tmp &= core#MASK_MOD_FORMAT
-    tmp := (tmp | format)
+    tmp := (tmp | type)
     writeReg (core#MDMCFG2, 1, @tmp)
+
+PUB NodeAddress(addr=-2) | tmp
+' Set address used for packet filtration
+'   Valid values: $00..$FF (000-255)
+'   Default value: $00
+'   Any other value polls the chip and returns the current setting
+'   NOTE: $00 and $FF can be used as broadcast addresses.
+    tmp := $00
+    readReg (core#ADDR, 1, @tmp)
+    case addr
+        $00..$FF:
+        OTHER:
+            return tmp
+
+    addr &= core#ADDR_MASK
+    writeReg (core#ADDR, 1, @addr)
 
 PUB PacketLen(length=-2) | tmp
 ' Set packet length, when using fixed packet length mode,
