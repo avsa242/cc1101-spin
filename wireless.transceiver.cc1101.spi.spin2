@@ -506,33 +506,6 @@ PUB DCBlock(enabled=-2) | tmp
     tmp := (tmp | enabled)
     writeReg (core#MDMCFG2, 1, @tmp)
 
-PUB Deviation(freq=-2) | tmp, deviat_m, deviat_e, tmp_m
-' Set frequency deviation from carrier, in Hz
-'   Valid values:
-'       1_586..380_859
-'   Default value: 47_607
-'   NOTE: This setting has no effect when Modulation format is ASK/OOK.
-'   NOTE: This setting applies to both TX and RX roles. When role is RX, setting must be
-'           approximately correct for reliable demodulation.
-'   Any other value polls the chip and returns the current setting
-    tmp := deviat_e := deviat_m := tmp_m := 0
-    readReg (core#DEVIATN, 1, @tmp)
-    case freq
-        1_587..380_859:
-            deviat_e := umath.MultDiv(freq, FOURTN, F_XOSC)
-            deviat_e := log2(deviat_e)
-            tmp_m := F_XOSC * (1 << deviat_e)
-            deviat_m := umath.MultDiv(freq, SEVENTN, tmp_m)
-            tmp := (deviat_e << core#FLD_DEVIATION_E) | deviat_m
-        OTHER:
-            deviat_m := tmp & core#BITS_DEVIATION_M
-            deviat_e := (tmp >> core#FLD_DEVIATION_E) & core#BITS_DEVIATION_E
-            result := F_XOSC / SEVENTN * (8 + deviat_m) * (1 << deviat_e)
-            return result
-
-    tmp &= core#DEVIATN_MASK
-    writeReg (core#DEVIATN, 1, @tmp)
-
 PUB DVGA(gain=-255) | tmp
 ' Set Digital Variable Gain Amplifier gain maximum level
 '   Valid values:
@@ -603,6 +576,33 @@ PUB FlushTX
             writeReg (core#CS_SFTX, 0, 0)
 '        OTHER:
 '            return
+
+PUB FreqDeviation(Hz=-2) | tmp, deviat_m, deviat_e, tmp_m
+' Set frequency deviation from carrier, in Hz
+'   Valid values:
+'       1_586..380_859
+'   Default value: 47_607
+'   NOTE: This setting has no effect when Modulation format is ASK/OOK.
+'   NOTE: This setting applies to both TX and RX roles. When role is RX, setting must be
+'           approximately correct for reliable demodulation.
+'   Any other value polls the chip and returns the current setting
+    tmp := deviat_e := deviat_m := tmp_m := 0
+    readReg (core#DEVIATN, 1, @tmp)
+    case Hz
+        1_587..380_859:
+            deviat_e := umath.MultDiv(Hz, FOURTN, F_XOSC)
+            deviat_e := log2(deviat_e)
+            tmp_m := F_XOSC * (1 << deviat_e)
+            deviat_m := umath.MultDiv(Hz, SEVENTN, tmp_m)
+            tmp := (deviat_e << core#FLD_DEVIATION_E) | deviat_m
+        OTHER:
+            deviat_m := tmp & core#BITS_DEVIATION_M
+            deviat_e := (tmp >> core#FLD_DEVIATION_E) & core#BITS_DEVIATION_E
+            result := F_XOSC / SEVENTN * (8 + deviat_m) * (1 << deviat_e)
+            return result
+
+    tmp &= core#DEVIATN_MASK
+    writeReg (core#DEVIATN, 1, @tmp)
 
 PUB FSTX
 ' Enable frequency synthesizer and calibrate
