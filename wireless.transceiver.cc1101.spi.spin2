@@ -102,9 +102,9 @@ OBJ
 PUB Null
 ''This is not a top-level object
 
-PUB Start(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ): okay
-    if SCK_FREQ => 1 and lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63) and SCK_FREQ > 0
-        if okay := spi.start (MOSI_PIN, MISO_PIN, SCK_PIN, SCK_FREQ, core#CPOL) 'SPI Object Started?
+PUB Start(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_HZ=5_000_000): okay
+    if SCK_HZ => 1 and lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63) and SCK_FREQ > 0
+        if okay := spi.start (MOSI_PIN, MISO_PIN, SCK_PIN, SCK_HZ, core#CPOL) 'SPI Object Started?
             time.MSleep (5)
             _CS := CS_PIN
             _MOSI := MOSI_PIN
