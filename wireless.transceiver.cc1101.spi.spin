@@ -119,7 +119,7 @@ PUB Stop
 
     spi.stop
 
-PUB Address(addr) | tmp
+PUB NodeAddress(addr) | tmp
 ' Set address used for packet filtration
 '   Valid values: $00..$FF (000-255)
 '   Any other value polls the chip and returns the current setting
