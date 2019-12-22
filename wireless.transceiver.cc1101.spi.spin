@@ -87,10 +87,10 @@ VAR
 
 OBJ
 
-    spi     : "SPI_Asm"                                             'PASM SPI Driver
+    spi     : "com.spi.4w"                                          'PASM SPI Driver
     core    : "core.con.cc1101"
     time    : "time"                                                'Basic timing functions
-    umath   : "umath"
+    u64   : "math.unsigned64"
 
 PUB Null
 ''This is not a top-level object
@@ -206,8 +206,8 @@ PUB AutoCal(when) | tmp
 
 PUB CalcFreqWord(Hz)
 
-    result := umath.multdiv (F_XOSC, UM_FACT, Hz)   'Need 64bit math to hold the large scaled up numbers
-    result := umath.multdiv (SIXTN, UM_FACT, result)
+    result := u64.multdiv (F_XOSC, UM_FACT, Hz)   'Need 64bit math to hold the large scaled up numbers
+    result := u64.multdiv (SIXTN, UM_FACT, result)
     return
 
 PUB CalFreqSynth
@@ -223,15 +223,15 @@ PUB CarrierFreq(Hz) | tmp
     readRegX (core#FREQ2, 3, @tmp)
     case Hz
         300_000_000..348_000_000, 387_000_000..464_000_000, 779_000_000..928_000_000:
-            Hz := umath.multdiv (F_XOSC, UM_FACT, Hz)   'Need 64bit math to hold the large scaled up numbers
-            Hz := umath.multdiv (SIXTN, UM_FACT, Hz)
+            Hz := u64.multdiv (F_XOSC, UM_FACT, Hz)   'Need 64bit math to hold the large scaled up numbers
+            Hz := u64.multdiv (SIXTN, UM_FACT, Hz)
             Hz.byte[3] := Hz.byte[0]                    'Reverse the byte order - the CC1101 registers are MSB-MB-LSB
             Hz.byte[0] := Hz.byte[2]                    ' but they'd by written LSB-MB-MSB without the swap
             Hz.byte[2] := Hz.byte[3]
             Hz.byte[3] := 0
         OTHER:
             result := ((tmp.byte[0] << 16) | (tmp.byte[1] << 8) | tmp.byte[2])
-            return umath.multdiv (result, UM_FREQ_RES, 1_000_000)
+            return u64.multdiv (result, UM_FREQ_RES, 1_000_000)
 
     writeRegX (core#FREQ2, 3, @Hz)
 
@@ -402,10 +402,10 @@ PUB Deviation(freq) | tmp, deviat_m, deviat_e, tmp_m
     readRegX (core#DEVIATN, 1, @tmp)
     case freq
         1_587..380_859:
-            deviat_e := umath.MultDiv(freq, FOURTN, F_XOSC)
+            deviat_e := u64.MultDiv(freq, FOURTN, F_XOSC)
             deviat_e := log2(deviat_e)
             tmp_m := F_XOSC * (1 << deviat_e)
-            deviat_m := umath.MultDiv(freq, SEVENTN, tmp_m)
+            deviat_m := u64.MultDiv(freq, SEVENTN, tmp_m)
             tmp := (deviat_e << core#FLD_DEVIATION_E) | deviat_m
         OTHER:
             deviat_m := tmp & core#BITS_DEVIATION_M
