@@ -28,7 +28,7 @@ CON
 OBJ
 
     cfg : "core.con.boardcfg.flip"
-    ser : "com.serial.terminal.ansi"
+    ser : "com.serial.terminal"
     time: "time"
     rf  : "wireless.transceiver.cc1101.spi"
 
