@@ -119,20 +119,6 @@ PUB Stop
 
     spi.stop
 
-PUB NodeAddress(addr) | tmp
-' Set address used for packet filtration
-'   Valid values: $00..$FF (000-255)
-'   Any other value polls the chip and returns the current setting
-'   NOTE: $00 and $FF can be used as broadcast addresses.
-    readReg (core#ADDR, 1, @tmp)
-    case addr
-        $00..$FF:
-        OTHER:
-            return tmp
-
-    addr &= core#ADDR_MASK
-    writeReg (core#ADDR, 1, @addr)
-
 PUB AddressCheck(check) | tmp
 ' Short descr
 '   Valid values:
@@ -151,6 +137,46 @@ PUB AddressCheck(check) | tmp
     tmp &= core#MASK_ADR_CHK
     tmp := (tmp | check) & core#PKTCTRL1_MASK
     writeReg (core#PKTCTRL1, 1, @tmp)
+
+PUB AfterRX(next_state) | tmp
+' Defines the state the radio transitions to after a packet is successfully received
+'   Valid values:
+'       RXOFF_IDLE (0) - Idle state
+'       RXOFF_FSTXON (1) - Turn frequency synth on and ready at TX freq. To transmit, call TX
+'       RXOFF_TX (2) - Start sending preamble
+'       RXOFF_RX (3) - Wait for more packets
+'   Any other value polls the chip and returns the current setting
+    readReg (core#MCSM1, 1, @tmp)
+    case next_state
+        0..3:
+            next_state := next_state << core#FLD_RXOFF_MODE
+        OTHER:
+            result := (tmp >> core#FLD_RXOFF_MODE) & core#BITS_RXOFF_MODE
+            return result
+
+    tmp &= core#MASK_RXOFF_MODE
+    tmp := (tmp | next_state)
+    writeReg (core#MCSM1, 1, @tmp)
+
+PUB AfterTX(next_state) | tmp
+' Defines the state the radio transitions to after a packet is successfully transmitted
+'   Valid values:
+'       TXOFF_IDLE (0) - Idle state
+'       TXOFF_FSTXON (1) - Turn frequency synth on and ready at TX freq. To transmit, call TX
+'       TXOFF_TX (2) - Start sending preamble
+'       TXOFF_RX (3) - Wait for packets (RX)
+'   Any other value polls the chip and returns the current setting
+    readReg (core#MCSM1, 1, @tmp)
+    case next_state
+        0..3:
+            next_state := next_state << core#FLD_TXOFF_MODE
+        OTHER:
+            result := (tmp >> core#FLD_TXOFF_MODE) & core#BITS_TXOFF_MODE
+            return result
+
+    tmp &= core#MASK_TXOFF_MODE
+    tmp := (tmp | next_state)
+    writeReg (core#MCSM1, 1, @tmp)
 
 PUB AGCFilterLen(length) | tmp
 ' For 2FSK, 4FSK, MSK, set averaging length for amplitude from the channel filter, in samples
@@ -259,12 +285,6 @@ PUB CarrierFreqWord(freq_word) | tmp
             return tmp
 
     writeReg (core#FREQ2, 3, @freq_word)
-
-PUB FreqTable(table_addr, entry_nr, freq_word) | tmp
-
-    byte[table_addr][entry_nr*3] := freq_word.byte[0]
-    byte[table_addr][(entry_nr*3)+1] := freq_word.byte[1]
-    byte[table_addr][(entry_nr*3)+2] := freq_word.byte[2]
 
 PUB CarrierSense(threshold) | tmp
 ' Set relative change threshold for asserting carrier sense, in dB
@@ -382,6 +402,23 @@ PUB DataRate(Baud) | tmp, tmp_e, tmp_m, DRATE_E, DRATE_M
     writeReg (core#MDMCFG4, 1, @tmp_e)
     writeReg (core#MDMCFG3, 1, @DRATE_M)
 
+PUB DataWhitening(enabled) | tmp
+' Enable data whitening
+'   Valid values: *TRUE (-1 or 1), FALSE (0)
+'   Any other value polls the chip and returns the current setting
+'   NOTE: Applies to all data, except the preamble and sync word.
+    readReg (core#PKTCTRL0, 1, @tmp)
+    case ||enabled
+        0, 1:
+            enabled := (||enabled) << core#FLD_WHITE_DATA
+        OTHER:
+            result := ((tmp >> core#FLD_WHITE_DATA) & %1) * TRUE
+            return result
+
+    tmp &= core#MASK_WHITE_DATA
+    tmp := (tmp | enabled)
+    writeReg (core#PKTCTRL0, 1, @tmp)
+
 PUB DCBlock(enabled) | tmp
 ' Enable digital DC blocking filter (before demod)
 '   Valid values: *TRUE (-1 or 1), FALSE
@@ -400,34 +437,13 @@ PUB DCBlock(enabled) | tmp
     tmp := (tmp | enabled)
     writeReg (core#MDMCFG2, 1, @tmp)
 
-PUB FreqDeviation(freq) | tmp, deviat_m, deviat_e, tmp_m
-' Set frequency deviation from carrier, in Hz
-'   Valid values:
-'       1_586..380_859
-'   Default value: 47_607
-'   NOTE: This setting has no effect when Modulation format is ASK/OOK.
-'   NOTE: This setting applies to both TX and RX roles. When role is RX, setting must be
-'           approximately correct for reliable demodulation.
-'   Any other value polls the chip and returns the current setting
-    tmp := deviat_e := deviat_m := tmp_m := 0
-    readReg (core#DEVIATN, 1, @tmp)
-    case freq
-        1_587..380_859:
-            deviat_e := u64.MultDiv(freq, FOURTN, F_XOSC)
-            deviat_e := log2(deviat_e)
-            tmp_m := F_XOSC * (1 << deviat_e)
-            deviat_m := u64.MultDiv(freq, SEVENTN, tmp_m)
-            tmp := (deviat_e << core#FLD_DEVIATION_E) | deviat_m
-        OTHER:
-            deviat_m := tmp & core#BITS_DEVIATION_M
-            deviat_e := (tmp >> core#FLD_DEVIATION_E) & core#BITS_DEVIATION_E
-            result := F_XOSC / SEVENTN * (8 + deviat_m) * (1 << deviat_e)
-            return result
+PUB DeviceID
+' Chip version number
+'   Returns: $14
+'   NOTE: Datasheet states this value is subject to change without notice
+    readReg (core#VERSION, 1, @result)
 
-    tmp &= core#DEVIATN_MASK
-    writeReg (core#DEVIATN, 1, @tmp)
-
-PUB DVGA(gain) | tmp
+PUB DVGAGain(gain) | tmp
 ' Set Digital Variable Gain Amplifier gain maximum level
 '   Valid values:
 '       *0 - Highest gain setting
@@ -517,6 +533,39 @@ PUB FlushTX
             writeReg (core#CS_SFTX, 0, 0)
 '        OTHER:
 '            return
+
+PUB FreqDeviation(freq) | tmp, deviat_m, deviat_e, tmp_m
+' Set frequency deviation from carrier, in Hz
+'   Valid values:
+'       1_586..380_859
+'   Default value: 47_607
+'   NOTE: This setting has no effect when Modulation format is ASK/OOK.
+'   NOTE: This setting applies to both TX and RX roles. When role is RX, setting must be
+'           approximately correct for reliable demodulation.
+'   Any other value polls the chip and returns the current setting
+    tmp := deviat_e := deviat_m := tmp_m := 0
+    readReg (core#DEVIATN, 1, @tmp)
+    case freq
+        1_587..380_859:
+            deviat_e := u64.MultDiv(freq, FOURTN, F_XOSC)
+            deviat_e := log2(deviat_e)
+            tmp_m := F_XOSC * (1 << deviat_e)
+            deviat_m := u64.MultDiv(freq, SEVENTN, tmp_m)
+            tmp := (deviat_e << core#FLD_DEVIATION_E) | deviat_m
+        OTHER:
+            deviat_m := tmp & core#BITS_DEVIATION_M
+            deviat_e := (tmp >> core#FLD_DEVIATION_E) & core#BITS_DEVIATION_E
+            result := F_XOSC / SEVENTN * (8 + deviat_m) * (1 << deviat_e)
+            return result
+
+    tmp &= core#DEVIATN_MASK
+    writeReg (core#DEVIATN, 1, @tmp)
+
+PUB FreqTable(table_addr, entry_nr, freq_word) | tmp
+
+    byte[table_addr][entry_nr*3] := freq_word.byte[0]
+    byte[table_addr][(entry_nr*3)+1] := freq_word.byte[1]
+    byte[table_addr][(entry_nr*3)+2] := freq_word.byte[2]
 
 PUB FSTX
 ' Enable frequency synthesizer and calibrate
@@ -670,6 +719,35 @@ PUB Modulation(type) | tmp
     tmp := (tmp | type)
     writeReg (core#MDMCFG2, 1, @tmp)
 
+PUB NodeAddress(addr) | tmp
+' Set address used for packet filtration
+'   Valid values: $00..$FF (000-255)
+'   Any other value polls the chip and returns the current setting
+'   NOTE: $00 and $FF can be used as broadcast addresses.
+    readReg (core#ADDR, 1, @tmp)
+    case addr
+        $00..$FF:
+        OTHER:
+            return tmp
+
+    addr &= core#ADDR_MASK
+    writeReg (core#ADDR, 1, @addr)
+
+PUB PartNumber
+' Part number of device
+'   Returns: $00
+    readReg (core#PARTNUM, 1, @result)
+
+PUB PARead(buf_addr)
+' Read 8-byte PA table into buf_addr
+'   NOTE: Ensure buf_addr is at least 8 bytes
+    readReg (core#PATABLE | core#BURST, 8, buf_addr)
+
+PUB PAWrite(buf_addr)
+' Write 8-byte PA table from buf_addr
+'   NOTE: Table will be written starting at index 0 from the LSB of buf_addr
+    writeReg (core#PATABLE | core#BURST, 8, buf_addr)
+
 PUB PayloadLen(length) | tmp
 ' Set payload length, when using fixed payload length mode,
 '   or maximum payload length when using variable payload length mode.
@@ -700,21 +778,6 @@ PUB PayloadLenCfg(mode) | tmp
     tmp &= core#MASK_LENGTH_CONFIG
     tmp := (tmp | mode) & core#PKTCTRL0_MASK
     writeReg (core#PKTCTRL0, 1, @tmp)
-
-PUB PartNumber
-' Part number of device
-'   Returns: $00
-    readReg (core#PARTNUM, 1, @result)
-
-PUB PARead(buf_addr)
-' Read 8-byte PA table into buf_addr
-'   NOTE: Ensure buf_addr is at least 8 bytes
-    readReg (core#PATABLE | core#BURST, 8, buf_addr)
-
-PUB PAWrite(buf_addr)
-' Write 8-byte PA table from buf_addr
-'   NOTE: Table will be written starting at index 0 from the LSB of buf_addr
-    writeReg (core#PATABLE | core#BURST, 8, buf_addr)
 
 PUB PreambleLen(bytes) | tmp
 ' Set number of preamble bytes
@@ -762,10 +825,6 @@ PUB RSSI
     else
         result := (result / 2) - 74
 
-PUB RXMode
-' Change chip state to RX (receive)
-    writeReg (core#CS_SRX, 0, 0)
-
 PUB RXBandwidth(kHz) | tmp
 ' Set receiver channel filter bandwidth, in kHz
 '   Valid values: 812, 650, 541, 464, 406, 325, 270, 232, *203, 162, 135, 116, 102, 81, 68, 58
@@ -807,25 +866,9 @@ PUB RXFIFOThresh(threshold) | tmp
     tmp := (tmp | threshold) & core#FIFOTHR_MASK
     writeReg (core#FIFOTHR, 1, @tmp)
 
-PUB AfterRX(next_state) | tmp
-' Defines the state the radio transitions to after a packet is successfully received
-'   Valid values:
-'       RXOFF_IDLE (0) - Idle state
-'       RXOFF_FSTXON (1) - Turn frequency synth on and ready at TX freq. To transmit, call TX
-'       RXOFF_TX (2) - Start sending preamble
-'       RXOFF_RX (3) - Wait for more packets
-'   Any other value polls the chip and returns the current setting
-    readReg (core#MCSM1, 1, @tmp)
-    case next_state
-        0..3:
-            next_state := next_state << core#FLD_RXOFF_MODE
-        OTHER:
-            result := (tmp >> core#FLD_RXOFF_MODE) & core#BITS_RXOFF_MODE
-            return result
-
-    tmp &= core#MASK_RXOFF_MODE
-    tmp := (tmp | next_state)
-    writeReg (core#MCSM1, 1, @tmp)
+PUB RXMode
+' Change chip state to RX (receive)
+    writeReg (core#CS_SRX, 0, 0)
 
 PUB Sleep
 ' Power down chip
@@ -875,58 +918,15 @@ PUB SyncWord(sync_word) | tmp
 
     writeReg (core#SYNC1, 2, @sync_word)
 
-PUB TXMode
-' Change chip state to TX (transmit)
-    writeReg (core#CS_STX, 0, 0)
-
 PUB TXData(nr_bytes, buf_addr)
 ' Queue data to transmit in the TX FIFO
 '   nr_bytes Valid values: 1..64
 '   Any other value is ignored
     writeReg (core#FIFO, nr_bytes, buf_addr)
 
-PUB AfterTX(next_state) | tmp
-' Defines the state the radio transitions to after a packet is successfully transmitted
-'   Valid values:
-'       TXOFF_IDLE (0) - Idle state
-'       TXOFF_FSTXON (1) - Turn frequency synth on and ready at TX freq. To transmit, call TX
-'       TXOFF_TX (2) - Start sending preamble
-'       TXOFF_RX (3) - Wait for packets (RX)
-'   Any other value polls the chip and returns the current setting
-    readReg (core#MCSM1, 1, @tmp)
-    case next_state
-        0..3:
-            next_state := next_state << core#FLD_TXOFF_MODE
-        OTHER:
-            result := (tmp >> core#FLD_TXOFF_MODE) & core#BITS_TXOFF_MODE
-            return result
-
-    tmp &= core#MASK_TXOFF_MODE
-    tmp := (tmp | next_state)
-    writeReg (core#MCSM1, 1, @tmp)
-
-PUB DeviceID
-' Chip version number
-'   Returns: $14
-'   NOTE: Datasheet states this value is subject to change without notice
-    readReg (core#VERSION, 1, @result)
-
-PUB DataWhitening(enabled) | tmp
-' Enable data whitening
-'   Valid values: *TRUE (-1 or 1), FALSE (0)
-'   Any other value polls the chip and returns the current setting
-'   NOTE: Applies to all data, except the preamble and sync word.
-    readReg (core#PKTCTRL0, 1, @tmp)
-    case ||enabled
-        0, 1:
-            enabled := (||enabled) << core#FLD_WHITE_DATA
-        OTHER:
-            result := ((tmp >> core#FLD_WHITE_DATA) & %1) * TRUE
-            return result
-
-    tmp &= core#MASK_WHITE_DATA
-    tmp := (tmp | enabled)
-    writeReg (core#PKTCTRL0, 1, @tmp)
+PUB TXMode
+' Change chip state to TX (transmit)
+    writeReg (core#CS_STX, 0, 0)
 
 PUB WOR
 ' Change chip state to WOR (Wake-on-Radio)
