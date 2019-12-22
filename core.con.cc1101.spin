@@ -15,11 +15,7 @@ CON
 ' SPI Configuration
     CPOL                            = 0
     CLK_DELAY                       = 1
-<<<<<<< HEAD
-    SCK_MAX_FREQ                    = 10_000_000
-=======
     SCK_MAX_FREQ                    = 6_500_000     'Max freq in burst mode
->>>>>>> p2-testing
     MOSI_BITORDER                   = 5             'MSBFIRST
     MISO_BITORDER                   = 0             'MSBPRE
 
