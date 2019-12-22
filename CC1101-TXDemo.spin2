@@ -28,10 +28,10 @@ CON
     SER_BAUD    = 2_000_000
 
 
-    CS_PIN          = 8                             ' Change to your module's connections
-    SCK_PIN         = 11
-    MOSI_PIN        = 10
-    MISO_PIN        = 9
+    CS_PIN          = 27                             ' Change to your module's connections
+    SCK_PIN         = 26
+    MOSI_PIN        = 24
+    MISO_PIN        = 25
     SCK_FREQ        = 5_000_000
 
     NODE_ADDRESS    = $02
@@ -68,6 +68,10 @@ PUB Main | choice
     ser.printf("Waiting for PLL lock...")
     repeat until cc1101.PLLLocked == TRUE           ' Don't proceed until PLL is locked
     ser.printf("done\n")
+
+    cc1101.TXPowerIndex(0)
+    cc1101.TXPower(5)                               ' -30, -20, -15, -10, 0, 5, 7, 10 dBm
+    ser.printf("TXPower: %d dBm\n", cc1101.TXPower)
 
     ser.printf("Press any key to begin transmitting\n")
     ser.CharIn

@@ -940,6 +940,62 @@ PUB TXMode
 ' Change chip state to TX (transmit)
     writeReg (core#CS_STX, 0, 0)
 
+PUB TXPower(dBm) | tmp
+' Set transmit power, in dBm
+'   Valid values: -30, -20, -15, -10, 0, 5, 7, 10
+'   Any other value polls the chip and returns the current setting
+    tmp := $00
+    readReg(core#PATABLE, 1, @tmp)
+    case dBm
+        -30, -20, -15, -10, 0, 5, 7, 10:
+            case CarrierFreq(-2)        ' Value written to radio depends on current frequency band
+                285_000_000..322_000_000:
+                    dBm := lookdown(dBm: -30, -20, -15, -10, 0, 5, 7, 10)
+                    dBm := lookup(dBm: $12, $0D, $1C, $34, $51, $85, $CB, $C2)
+                420_000_000..450_000_000:
+                    dBm := lookdown(dBm: -30, -20, -15, -10, 0, 5, 7, 10)
+                    dBm := lookup(dBm: $12, $0E, $1D, $34, $60, $84, $C8, $C0)
+                854_000_000..894_000_000:
+                    dBm := lookdown(dBm: -30, -20, -15, -10, 0, 5, 7, 10)
+                    dBm := lookup(dBm: $03, $0F, $1E, $27, $50, $81, $CB, $C2)
+                902_000_000..928_000_000:
+                    dBm := lookdown(dBm: -30, -20, -15, -10, 0, 5, 7, 10)
+                    dBm := lookup(dBm: $03, $0E, $1E, $27, $8E, $CD, $C7, $C0)
+        OTHER:
+            case CarrierFreq (-2)
+                285_000_000..322_000_000:
+                    tmp := lookdown(tmp: $12, $0D, $1C, $34, $51, $85, $CB, $C2)
+                    result := lookup(tmp: -30, -20, -15, -10, 0, 5, 7, 10)
+                420_000_000..450_000_000:
+                    tmp := lookdown(tmp: $12, $0E, $1D, $34, $60, $84, $C8, $C0)
+                    result := lookup(tmp: -30, -20, -15, -10, 0, 5, 7, 10)
+                854_000_000..894_000_000:
+                    tmp := lookdown(tmp: $03, $0F, $1E, $27, $50, $81, $CB, $C2)
+                    result := lookup(tmp: -30, -20, -15, -10, 0, 5, 7, 10)
+                902_000_000..928_000_000:
+                    tmp := lookdown(tmp: $03, $0E, $1E, $27, $8E, $CD, $C7, $C0)
+                    result := lookup(tmp: -30, -20, -15, -10, 0, 5, 7, 10)
+            return
+
+    writeReg(core#PATABLE, 1, @dBm)
+
+PUB TXPowerIndex(entry) | tmp
+' Set index within PA table to write TX power to (used for FSK power ramping, or ASK shaping)
+'   Valid values: 0..7
+'   Any other value polls the chip and returns the current setting
+'   NOTE: For simple transmit power setting without ramping,
+'       set this value to 0 and then set TXPower to desired output power.
+    tmp := $00
+    readReg(core#FREND0, 1, @tmp)
+    case entry
+        0..7:
+        OTHER:
+            return tmp & core#BITS_PA_POWER
+
+    tmp &= core#MASK_PA_POWER
+    tmp := (tmp | entry) & core#FREND0_MASK
+    writeReg(core#FREND0, 1, @tmp)
+
 PUB WOR
 ' Change chip state to WOR (Wake-on-Radio)
     writeReg (core#CS_SWOR, 0, 0)
@@ -959,7 +1015,7 @@ PRI log2(num) | tmp
 PRI readReg(reg, nr_bytes, addr_buff) | i
 ' Read nr_bytes from register 'reg' to address 'addr_buff'
     case reg
-        $00..$2E:                               ' Config regs
+        $00..$2E, $3E:                          ' Config regs
             case nr_bytes
                 1:
                 2..64:
@@ -1002,7 +1058,7 @@ PRI writeReg(reg, nr_bytes, buf_addr) | tmp
 'IF CS PULLED LOW, WAIT UNTIL SO LOW WHEN IN SLEEP OR XOFF STATES
 
     case reg
-        $00..$2E:                               ' R/W regs
+        $00..$2E, $3E:                          ' R/W regs
             case nr_bytes
                 0:                              ' Invalid nr_bytes - ignore
                     return

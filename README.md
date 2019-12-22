@@ -8,7 +8,7 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 driver object for Texas Instr
 * SPI connection at up to 1MHz (P1), ~5MHz (P2)
 * Over-the-air (OTA) data rate from 1kBaud to 500kBaud
 * 2FSK, 4FSK, GFSK, ASK/OOK, MSK modulation formats
-* Set common RF parameters: Receive bandwidth, IF, carrier freq, DC block filter, RX Gain, FSK deviation freq
+* Set common RF parameters: Receive bandwidth, IF, carrier freq, DC block filter, RX Gain, TX power, FSK deviation freq
 * Set number of preamble bytes
 * Set function of CC1101's GPIO pins
 * Address filtering
@@ -17,7 +17,8 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 driver object for Texas Instr
 
 ## Requirements
 
-* 1 extra core/cog for the PASM SPI driver
+* P1: 1 extra core/cog for the PASM SPI driver
+* P2: N/A
 
 ## Compiler Compatibility
 
@@ -28,13 +29,12 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 driver object for Texas Instr
 
 * Very early development - feature incomplete and may malfunction or outright fail to build
 * Available OTA baud rates are currently just common presets from 1k to 500k.
-* Transmit power setting not currently supported
 
 ## TODO
 
 - [x] TX frequency deviation
 - [x] GDO I/O pin config
 - [x] Fine-grained carrier-freq setting
-- [ ] Method to set transmit power
+- [x] Method to set transmit power
 - [ ] Fine-grained baudrate setting
 
