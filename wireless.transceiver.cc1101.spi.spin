@@ -944,7 +944,7 @@ PRI log2(num) | tmp
         FALSE:
     return tmp
 
-PUB readReg(reg, nr_bytes, addr_buff) | i
+PRI readReg(reg, nr_bytes, addr_buff) | i
 ' Read nr_bytes from register 'reg' to address 'addr_buff'
     case reg
         $00..$2E:                               ' Config regs
@@ -981,7 +981,7 @@ PUB readReg(reg, nr_bytes, addr_buff) | i
         byte[addr_buff][i] := spi.SHIFTIN(_MISO, _SCK, core#MISO_BITORDER, 8)
     outa[_CS] := 1
 
-PUB writeReg(reg, nr_bytes, buf_addr) | tmp
+PRI writeReg(reg, nr_bytes, buf_addr) | tmp
 ' Write nr_bytes to register 'reg' stored in val
 'HEADER BYTE:
 ' MSB   = R(1)/W(0) bit
