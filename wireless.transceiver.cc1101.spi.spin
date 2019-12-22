@@ -5,7 +5,7 @@
     Description: Driver for TI's CC1101 ISM-band transceiver
     Copyright (c) 2019
     Started Mar 25, 2019
-    Updated Apr 2, 2019
+    Updated Dec 22, 2019
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -90,7 +90,7 @@ OBJ
     spi     : "com.spi.4w"                                          'PASM SPI Driver
     core    : "core.con.cc1101"
     time    : "time"                                                'Basic timing functions
-    u64   : "math.unsigned64"
+    u64     : "math.unsigned64"
 
 PUB Null
 ''This is not a top-level object
@@ -380,21 +380,21 @@ PUB CrystalOff
 
 PUB DataRate(Baud) | tmp, tmp_e, tmp_m, DRATE_E, DRATE_M
 ' Set on-air data rate, in bps
-'   Valid values: 1000, 1200, 2400, 4800, 9600, 19_600, 38_400, 76_800, 153_600, 250_000, 500_000
+'   Valid values: 1000, 1200, 2400, 4800, 9600, 19_600, 38_400, 76_800, 115_051, 153_600, 250_000, 500_000
 '   Any other value polls the chip and returns the current setting
     tmp := tmp_e := tmp_m := DRATE_E := DRATE_M := 0
 
     readReg (core#MDMCFG4, 1, @tmp_e)
     readReg (core#MDMCFG3, 1, @tmp_m)
     case Baud := lookdown(Baud: 1000, 1200, 2048, 2400, 4096, 4800, 9600, 19_600, 38_400, 76_800, 115_051, 153_600, 250_000, 500_000)
-        1..13:
+        1..14:
             DRATE_E := lookup(Baud: $05, $05, $06, $06, $07, $07, $08, $09, $0A, $0B, $0C, $0C, $0D, $0E) & core#BITS_DRATE_E
             DRATE_M := lookup(Baud: $42, $83, $4A, $83, $4A, $83, $83, $8B, $83, $83, $22, $83, $3B, $3B) & core#MDMCFG3_MASK
         OTHER:
             tmp_e &= core#BITS_DRATE_E
             tmp := (tmp_e << 8) | tmp_m
-            result := lookdown(tmp: $0542, $0583, $0683, $0783, $0883, $098B, $0A83, $0B83, $0C22, $0C83, $0D3B, $0E3B)
-            return lookup(result: 1000, 1200, 2400, 4800, 9600, 19_600, 38_400, 76_800, 115_051, 153_600, 250_000, 500_000)
+            result := lookdown(tmp: $0542, $0583, $064A, $0683, $074A, $0783, $0883, $098B, $0A83, $0B83, $0C22, $0C83, $0D3B, $0E3B)
+            return lookup(result: 1000, 1200, 2048, 2400, 4096, 4800, 9600, 19_600, 38_400, 76_800, 115_051, 153_600, 250_000, 500_000)
 
     tmp_e &= core#MASK_DRATE_E
     tmp_e := (tmp_e | DRATE_E)
@@ -571,7 +571,7 @@ PUB FSTX
 ' Enable frequency synthesizer and calibrate
     writeReg (core#CS_SFSTXON, 0, 0)
 
-PUB GPI0(config) | tmp
+PUB GPIO0(config) | tmp
 ' Configure test signal output on GD0 pin
 '   Valid values: $00..$0F, $16..$17, $1B..$1D, $24..$39, $41, $43, $46..$3F
 '   Default value: $3F

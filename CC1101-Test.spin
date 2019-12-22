@@ -5,7 +5,7 @@
     Description: Test object for the cc1101 driver
     Copyright (c) 2019
     Started Mar 25, 2019
-    Updated Apr 2, 2019
+    Updated Dec 22, 2019
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,10 +15,10 @@ CON
     _clkmode    = cfg#_clkmode
     _xinfreq    = cfg#_xinfreq
 
-    CS_PIN      = 13
-    SCK_PIN     = 8
-    MOSI_PIN    = 9
-    MISO_PIN    = 10
+    CS_PIN      = 0
+    SCK_PIN     = 3
+    MOSI_PIN    = 2
+    MISO_PIN    = 1
 
     COL_REG     = 0
     COL_SET     = 25
@@ -28,7 +28,7 @@ CON
 OBJ
 
     cfg : "core.con.boardcfg.flip"
-    ser : "com.serial.terminal"
+    ser : "com.serial.terminal.ansi"
     time: "time"
     rf  : "wireless.transceiver.cc1101.spi"
 
@@ -41,7 +41,8 @@ PUB Main
 
     Setup
     rf.Idle
-    _row := 1
+    _row := 3
+
     RXOFF_MODE (1)
     AUTOCAL (1)
     DRATE (1)
@@ -67,9 +68,7 @@ PUB Main
     SYNC_MODE (1)
     PKTLEN (1)
     ADR_CHK (1)
-    ser.NewLine
-    ser.Str (string("Total failures: "))
-    ser.Dec (_fails)
+
     Flash (cfg#LED1)
 
 PUB ADR_CHK(reps) | tmp, read
@@ -133,11 +132,11 @@ PUB PKTLEN(reps) | tmp, read
 '    _expanded := TRUE
 '    rf.Reset
 '    rf.Idle
-'    rf.PacketLenCfg (rf#PKTLEN_FIXED)
+'    rf.PayloadLenCfg (rf#PKTLEN_FIXED)
     repeat reps
         repeat tmp from 1 to 255
-            rf.PacketLen (tmp)
-            read := rf.PacketLen (-2)
+            rf.PayloadLen (tmp)
+            read := rf.PayloadLen (-2)
             Message (string("PKTLEN"), tmp, read)
 '            time.MSleep (10)
 
@@ -146,8 +145,8 @@ PUB LENGTH_CONFIG(reps) | tmp, read
     _row++
     repeat reps
         repeat tmp from 0 to 2
-            rf.PacketLenCfg (tmp)
-            read := rf.PacketLenCfg (-2)
+            rf.PayloadLenCfg (tmp)
+            read := rf.PayloadLenCfg (-2)
             Message (string("LENGTH_CONFIG"), tmp, read)
 
 PUB TXOFF_MODE(reps) | tmp, read
@@ -155,8 +154,8 @@ PUB TXOFF_MODE(reps) | tmp, read
     _row++
     repeat reps
         repeat tmp from 0 to 3
-            rf.TXOff (tmp)
-            read := rf.TXOff (-2)
+            rf.AfterTX (tmp)
+            read := rf.AfterTX (-2)
             Message (string("TXOFF_MODE"), tmp, read)
 
 PUB SYNC1(reps) | tmp, read
@@ -174,8 +173,8 @@ PUB NUM_PREAMBLE(reps) | tmp, read
     _row++
     repeat reps
         repeat tmp from 1 to 8
-            rf.Preamble (lookup(tmp: 2, 3, 4, 6, 8, 12, 16, 24))
-            read := rf.Preamble (-2)
+            rf.PreambleLen (lookup(tmp: 2, 3, 4, 6, 8, 12, 16, 24))
+            read := rf.PreambleLen (-2)
             Message (string("NUM_PREAMBLE"), lookup(tmp: 2, 3, 4, 6, 8, 12, 16, 24), read)
 
 PUB MOD_FORMAT(reps) | tmp, read
@@ -206,8 +205,8 @@ PUB IOCFG2(reps) | tmp, read
     repeat tmp from $00 to $3F
         case tmp
             $00..$0F, $16..$17, $1B..$1D, $24..$27, $29, $2B, $2E..$3F:
-                rf.GDO2 (tmp)
-                read := rf.GDO2 (-2)
+                rf.GPIO2 (tmp)
+                read := rf.GPIO2 (-2)
                 Message (string("IOCFG2"), tmp, read)
 
             OTHER:
@@ -219,8 +218,8 @@ PUB IOCFG1(reps) | tmp, read
     repeat tmp from $00 to $3F
         case tmp
             $00..$0F, $16..$17, $1B..$1D, $24..$27, $29, $2B, $2E..$3F:
-                rf.GDO1 (tmp)
-                read := rf.GDO1 (-2)
+                rf.GPIO1 (tmp)
+                read := rf.GPIO1 (-2)
                 Message (string("IOCFG1"), tmp, read)
 
             OTHER:
@@ -232,8 +231,8 @@ PUB IOCFG0(reps) | tmp, read
     repeat tmp from $00 to $3F
         case tmp
             $00..$0F, $16..$17, $1B..$1D, $24..$27, $29, $2B, $2E..$3F:
-                rf.GDO0 (tmp)
-                read := rf.GDO0 (-2)
+                rf.GPIO0 (tmp)
+                read := rf.GPIO0 (-2)
                 Message (string("IOCFG0"), tmp, read)
 
             OTHER:
@@ -262,8 +261,8 @@ PUB CRC_EN(reps) | tmp, read
     _row++
     repeat reps
         repeat tmp from 0 to -1
-            rf.CRCCheck (tmp)
-            read := rf.CRCCheck (-2)
+            rf.CRCCheckEnabled (tmp)
+            read := rf.CRCCheckEnabled (-2)
             Message (string("CRC_EN"), tmp, read)
 
 PUB CHANNR(reps) | tmp, read
@@ -280,8 +279,8 @@ PUB ADDR(reps) | tmp, read
     _row++
     repeat reps
         repeat tmp from 0 to 255
-            rf.Address (tmp)
-            read := rf.Address (-2)
+            rf.NodeAddress (tmp)
+            read := rf.NodeAddress (-2)
             Message (string("ADDR"), tmp, read)
 
 PUB RXOFF_MODE(reps) | tmp, read
@@ -289,8 +288,8 @@ PUB RXOFF_MODE(reps) | tmp, read
     _row++
     repeat reps
         repeat tmp from 0 to 3
-            rf.RXOff (tmp)
-            read := rf.RXOff (-2)
+            rf.AfterRX (tmp)
+            read := rf.AfterRX (-2)
             Message (string("RXOFF_MODE"), tmp, read)
 
 PUB AUTOCAL(reps) | tmp, read
@@ -372,12 +371,13 @@ PUB PassFail(num)
 PUB Setup
 
     repeat until _ser_cog := ser.Start (115_200)
+    time.MSleep(100)
     ser.Clear
-    ser.Str(string("Serial terminal started", ser#NL))
+    ser.Str(string("Serial terminal started", ser#CR, ser#LF))
     if rf.Start (CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
-        ser.Str (string("CC1101 driver started", ser#NL))
+        ser.Str (string("CC1101 driver started", ser#CR, ser#LF))
     else
-        ser.Str (string("CC1101 driver failed to start - halting", ser#NL))
+        ser.Str (string("CC1101 driver failed to start - halting", ser#CR, ser#LF))
         rf.Stop
         time.MSleep (500)
         ser.Stop
