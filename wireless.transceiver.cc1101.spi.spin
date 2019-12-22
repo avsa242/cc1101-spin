@@ -153,7 +153,16 @@ PUB AddressCheck(check) | tmp
     writeRegX (core#PKTCTRL1, 1, @tmp)
 
 PUB AGCFilterLen(length) | tmp
-
+' For 2FSK, 4FSK, MSK, set averaging length for amplitude from the channel filter, in samples
+' For OOK/ASK, set decision boundary for reception
+'   Valid values:
+'       FSK/MSK     OOK/ASK
+'       Samples     decision boundary
+'       8           4dB
+'       16          8dB
+'       32          12dB
+'       64          16dB
+'   Any other value polls the chip and returns the current setting
     tmp := $00
     readRegX (core#AGCCTRL0, 1, @tmp)
     case length
