@@ -1,11 +1,11 @@
-{
+i{
     --------------------------------------------
     Filename: CC1101-TXDemo.spin
     Author: Jesse Burt
     Description: Simple transmit demo of the cc1101 driver
     Copyright (c) 2019
     Started Nov 23, 2019
-    Updated Dec 21, 2019
+    Updated Dec 22, 2019
     See end of file for terms of use.
     --------------------------------------------
 }
