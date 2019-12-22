@@ -323,20 +323,20 @@ PUB CarrierSenseAbs(threshold) | tmp
     tmp := (tmp | threshold) & core#AGCCTRL1_MASK
     writeReg (core#AGCCTRL1, 1, @tmp)
 
-PUB Channel(chan) | tmp
+PUB Channel(number) | tmp
 ' Set device channel number
 '   Resulting frequency is the channel number multiplied by the channel spacing setting, added to the base frequency
 '   Valid values: 0..255
 '   Default value: 0
 '   Any other value polls the chip and returns the current setting
     readReg (core#CHANNR, 1, @tmp)
-    case chan
+    case number
         0..255:
         OTHER:
             return tmp
 
-    chan &= core#CHANNR_MASK
-    writeReg (core#CHANNR, 1, @chan)
+    number &= core#CHANNR_MASK
+    writeReg (core#CHANNR, 1, @number)
 
 PUB CRCCheckEnabled(enabled) | tmp
 ' Enable CRC calc (TX) and check (RX)
@@ -492,29 +492,6 @@ PUB FIFOTXBytes
 ' NOTE: The MSB indicates if the TX FIFO is underflowed.
     readReg (core#TXBYTES, 1, @result)
     result &= $7F
-
-PUB FilterLength(samples) | tmp
-' For 2FSK, 4FSK, MSK, set averaging length for amplitude from the channel filter, in samples
-' For OOK/ASK, set decision boundary for reception
-'   Valid values:
-'       FSK/MSK     OOK/ASK
-'       Samples     decision boundary
-'       8           4dB
-'       16          8dB
-'       32          12dB
-'       64          16dB
-'   Any other value polls the chip and returns the current setting
-    readReg (core#AGCCTRL0, 1, @tmp)
-    case samples
-        8, 16, 32, 64:
-            samples := lookdownz(samples: 8, 16, 32, 64) & core#BITS_FILTER_LENGTH
-        OTHER:
-            result := tmp & core#BITS_FILTER_LENGTH
-            return lookupz(result: 8, 16, 32, 64)
-
-    tmp &= core#MASK_FILTER_LENGTH
-    tmp := (tmp | samples) & core#AGCCTRL0_MASK
-    writeReg (core#AGCCTRL0, 1, @tmp)
 
 PUB FlushRX
 ' Flush receive FIFO/buffer
