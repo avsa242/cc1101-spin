@@ -61,7 +61,7 @@ PUB Main | choice
     ser.str(string("done", ser#CR, ser#LF))
 
     cc1101.TXPowerIndex(0)
-    cc1101.TXPower(-15)                               ' -30, -20, -15, -10, 0, 5, 7, 10 dBm
+    cc1101.TXPower(0)                               ' -30, -20, -15, -10, 0, 5, 7, 10 dBm
     ser.str(string("TXPower: "))
     ser.dec(cc1101.TXPower(-255))
     ser.str(string("dBm", ser#CR, ser#LF))
