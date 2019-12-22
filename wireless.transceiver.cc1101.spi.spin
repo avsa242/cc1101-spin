@@ -641,6 +641,12 @@ PUB IntFreq(kHz) | tmp
 
     writeReg (core#FSCTRL1, 1, @kHz)
 
+PUB LastCRC
+' Indicates CRC of last reception matched
+'   Returns: TRUE if comparison matched, FALSE otherwise
+    readReg (core#LQI, 1, @result)
+    result := ((result >> core#FLD_CRC_OK) & %1) * TRUE
+
 PUB LNAGain(dB) | tmp
 ' Set maximum LNA+LNA2 gain (relative to maximum possible gain)
 '   Valid values:
