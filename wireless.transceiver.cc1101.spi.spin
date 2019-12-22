@@ -197,7 +197,7 @@ PUB AppendStatus(enabled) | tmp
 PUB AutoCal(when) | tmp
 ' When to perform auto-calibration
 '   Valid values:
-'       NEVER (0) - Never (manually calibrate)
+'      *NEVER (0) - Never (manually calibrate)
 '       IDLE_RXTX (1) - When transitioning from IDLE to RX/TX
 '       RXTX_IDLE (2) - When transitioning from RX/TX to IDLE
 '       RXTX_IDLE4 (3) - Every 4th time when transitioning from RX/TX to IDLE (power-saving)
@@ -227,6 +227,7 @@ PUB CarrierFreq(Hz) | tmp
 ' Set carrier/center frequency, in Hz
 '   Valid values:
 '       300_000_000..348_000_000, 387_000_000..464_000_000, 779_000_000..928_000_000
+'   Default value: Approx 800_000_000
 '   Any other value polls the chip and returns the current setting
 '   NOTE: The actual set frequency has a resolution of fXOSC/2^16 (i.e., approx 396Hz)
     readRegX (core#FREQ2, 3, @tmp)
@@ -246,7 +247,6 @@ PUB CarrierFreq(Hz) | tmp
 
 PUB CarrierFreqWord(freq_word) | tmp
 ' Set carrier/center frequency, by frequency word (use CalcFreqWord to calculate)
-
 '   Any other value polls the chip and returns the current setting
     readRegX (core#FREQ2, 3, @tmp)
     case freq_word
@@ -269,7 +269,7 @@ PUB FreqTable(table_addr, entry_nr, freq_word) | tmp
 PUB CarrierSense(threshold) | tmp
 ' Set relative change threshold for asserting carrier sense, in dB
 '   Valid values:
-'       0: Disabled
+'      *0: Disabled
 '       6: 6dB increase in RSSI
 '       10: 10dB increase in RSSI
 '       14: 14dB increase in RSSI
@@ -290,6 +290,7 @@ PUB CarrierSenseAbs(threshold) | tmp
 ' Set absolute change threshold for asserting carrier sense, in dB
 '   Valid values:
 '       %0000..%1111
+'   Default value: %0000
 '   Any other value polls the chip and returns the current setting
     readRegX (core#AGCCTRL1, 1, @tmp)
     case threshold
@@ -306,6 +307,7 @@ PUB Channel(chan) | tmp
 ' Set device channel number
 '   Resulting frequency is the channel number multiplied by the channel spacing setting, added to the base frequency
 '   Valid values: 0..255
+'   Default value: 0
 '   Any other value polls the chip and returns the current setting
     readRegX (core#CHANNR, 1, @tmp)
     case chan
@@ -316,7 +318,7 @@ PUB Channel(chan) | tmp
     chan &= core#CHANNR_MASK
     writeRegX (core#CHANNR, 1, @chan)
 
-PUB CRCCheck(enabled) | tmp
+PUB CRCCheckEnabled(enabled) | tmp
 ' Enable CRC calc (TX) and check (RX)
 '   Valid values:
 '      *TRUE (-1 or 1)
@@ -364,15 +366,15 @@ PUB DataRate(Baud) | tmp, tmp_e, tmp_m, DRATE_E, DRATE_M
 
     readRegX (core#MDMCFG4, 1, @tmp_e)
     readRegX (core#MDMCFG3, 1, @tmp_m)
-    case Baud := lookdown(Baud: 1000, 1200, 2048, 2400, 4096, 4800, 9600, 19_600, 38_400, 76_800, 153_600, 250_000, 500_000)
+    case Baud := lookdown(Baud: 1000, 1200, 2048, 2400, 4096, 4800, 9600, 19_600, 38_400, 76_800, 115_051, 153_600, 250_000, 500_000)
         1..13:
-            DRATE_E := lookup(Baud: $05, $05, $06, $06, $07, $07, $08, $09, $0A, $0B, $0C, $0D, $0E) & core#BITS_DRATE_E
-            DRATE_M := lookup(Baud: $42, $83, $4A, $83, $4A, $83, $83, $8B, $83, $83, $83, $3B, $3B) & core#MDMCFG3_MASK
+            DRATE_E := lookup(Baud: $05, $05, $06, $06, $07, $07, $08, $09, $0A, $0B, $0C, $0C, $0D, $0E) & core#BITS_DRATE_E
+            DRATE_M := lookup(Baud: $42, $83, $4A, $83, $4A, $83, $83, $8B, $83, $83, $22, $83, $3B, $3B) & core#MDMCFG3_MASK
         OTHER:
             tmp_e &= core#BITS_DRATE_E
             tmp := (tmp_e << 8) | tmp_m
-            result := lookdown(tmp: $0542, $0583, $0683, $0783, $0883, $098B, $0A83, $0B83, $0C83, $0D3B, $0E3B)
-            return lookup(result: 1000, 1200, 2400, 4800, 9600, 19_600, 38_400, 76_800, 153_600, 250_000, 500_000)
+            result := lookdown(tmp: $0542, $0583, $0683, $0783, $0883, $098B, $0A83, $0B83, $0C22, $0C83, $0D3B, $0E3B)
+            return lookup(result: 1000, 1200, 2400, 4800, 9600, 19_600, 38_400, 76_800, 115_051, 153_600, 250_000, 500_000)
 
     tmp_e &= core#MASK_DRATE_E
     tmp_e := (tmp_e | DRATE_E)
@@ -382,7 +384,7 @@ PUB DataRate(Baud) | tmp, tmp_e, tmp_m, DRATE_E, DRATE_M
 
 PUB DCBlock(enabled) | tmp
 ' Enable digital DC blocking filter (before demod)
-'   Valid values: TRUE (-1 or 1), FALSE
+'   Valid values: *TRUE (-1 or 1), FALSE
 '   Any other value polls the chip and returns the current setting
 '   NOTE: Enable for better sensitivity (default).
 '       Disable for optimizing current usage. Only for data rates 250kBaud and lower
@@ -398,11 +400,11 @@ PUB DCBlock(enabled) | tmp
     tmp := (tmp | enabled)
     writeRegX (core#MDMCFG2, 1, @tmp)
 
-PUB Deviation(freq) | tmp, deviat_m, deviat_e, tmp_m
+PUB FreqDeviation(freq) | tmp, deviat_m, deviat_e, tmp_m
 ' Set frequency deviation from carrier, in Hz
 '   Valid values:
 '       1_586..380_859
-'       *47_607
+'   Default value: 47_607
 '   NOTE: This setting has no effect when Modulation format is ASK/OOK.
 '   NOTE: This setting applies to both TX and RX roles. When role is RX, setting must be
 '           approximately correct for reliable demodulation.
@@ -428,7 +430,7 @@ PUB Deviation(freq) | tmp, deviat_m, deviat_e, tmp_m
 PUB DVGA(gain) | tmp
 ' Set Digital Variable Gain Amplifier gain maximum level
 '   Valid values:
-'       0 - Highest gain setting
+'       *0 - Highest gain setting
 '       -1 - Highest gain setting-1
 '       -2 - Highest gain setting-2
 '       -3 - Highest gain setting-3
@@ -447,7 +449,7 @@ PUB DVGA(gain) | tmp
 
 PUB FEC(enabled) | tmp
 ' Enable forward error correction with interleaving
-'   Valid values: TRUE (-1 or 1), FALSE (0)
+'   Valid values: TRUE (-1 or 1), *FALSE (0)
 '   Any other value polls the chip and returns the current setting
 '   NOTE: Only supported for fixed packet length mode
     readRegX (core#MDMCFG1, 1, @tmp)
@@ -462,18 +464,14 @@ PUB FEC(enabled) | tmp
     tmp := (tmp | enabled) & core#MDMCFG1_MASK
     writeRegX (core#MDMCFG1, 1, @tmp)
 
-PUB FIFO
-' Returns number of bytes available in RX FIFO or free bytes in TX FIFO
-    return Status & %1111
-
-PUB FIFORX | tmp
+PUB FIFORXBytes | tmp
 ' Returns number of bytes in RX FIFO
 ' NOTE: The MSB indicates if the RX FIFO has overflowed.
     tmp := $00
     readRegX (core#RXBYTES, 1, @tmp)
     return tmp & $FF
 
-PUB FIFOTX
+PUB FIFOTXBytes
 ' Returns number of bytes in TX FIFO
 ' NOTE: The MSB indicates if the TX FIFO is underflowed.
     readRegX (core#TXBYTES, 1, @result)
@@ -524,9 +522,10 @@ PUB FSTX
 ' Enable frequency synthesizer and calibrate
     writeRegX (core#CS_SFSTXON, 0, 0)
 
-PUB GDO0(config) | tmp
+PUB GPI0(config) | tmp
 ' Configure test signal output on GD0 pin
 '   Valid values: $00..$0F, $16..$17, $1B..$1D, $24..$39, $41, $43, $46..$3F
+'   Default value: $3F
 '   Any other value polls the chip and returns the current setting
 '   NOTE: The default setting is IO_CLK_XODIV192, which outputs the CC1101's XO clock, divided by 192 on the pin.
 '       TI recommends the clock outputs be disabled when the radio is active, for best performance.
@@ -542,7 +541,7 @@ PUB GDO0(config) | tmp
     tmp := (tmp | config)
     writeRegX (core#IOCFG0, 1, @tmp)
 
-PUB GDO1(config) | tmp
+PUB GPIO1(config) | tmp
 ' Configure test signal output on GD0 pin
 '   Valid values: $00..$0F, $16..$17, $1B..$1D, $24..$39, $41, $43, $46..$3F
 '   Any other value polls the chip and returns the current setting
@@ -559,7 +558,7 @@ PUB GDO1(config) | tmp
     tmp := (tmp | config)
     writeRegX (core#IOCFG1, 1, @tmp)
 
-PUB GDO2(config) | tmp
+PUB GPIO2(config) | tmp
 ' Configure test signal output on GD0 pin
 '   Valid values: $00..$0F, $16..$17, $1B..$1D, $24..$39, $41, $43, $46..$3F
 '   Any other value polls the chip and returns the current setting
@@ -582,6 +581,7 @@ PUB Idle
 PUB IntFreq(kHz) | tmp
 ' Intermediate Frequency (IF), in kHz
 '   Valid values: 25..787 (result will be rounded to the nearest 5-bit result)
+'   Default value: 381
 '   Any other value polls the chip and returns the current setting
     readRegX (core#FSCTRL1, 1, @tmp)
     case kHz
@@ -592,10 +592,10 @@ PUB IntFreq(kHz) | tmp
 
     writeRegX (core#FSCTRL1, 1, @kHz)
 
-PUB LNA(gain) | tmp
+PUB LNAGain(dB) | tmp
 ' Set maximum LNA+LNA2 gain (relative to maximum possible gain)
 '   Valid values:
-'       0 - Maximum possible LNA+LNA2 gain
+'       *0 - Maximum possible LNA+LNA2 gain
 '       -2 - ~2.6dB below maximum
 '       -6 - ~6.1dB below maximum
 '       -7 - ~7.4dB below maximum
@@ -605,21 +605,21 @@ PUB LNA(gain) | tmp
 '       -17 - ~17.1dB below maximum
 '   Any other value polls the chip and returns the current setting
     readRegX (core#AGCCTRL2, 1, @tmp)
-    case gain
+    case dB
         0, -2, -6, -7, -9, -11, -14, -17:
-            gain := lookdownz(gain: 0, -2, -6, -7, -9, -11, -14, -17) << core#FLD_MAX_LNA_GAIN
+            dB := lookdownz(dB: 0, -2, -6, -7, -9, -11, -14, -17) << core#FLD_MAX_LNA_GAIN
         OTHER:
             result := (tmp >> core#FLD_MAX_LNA_GAIN) & core#BITS_MAX_LNA_GAIN
             return lookupz(result: 0, -2, -6, -7, -9, -11, -14, -17)
 
     tmp &= core#MASK_MAX_LNA_GAIN
-    tmp := (tmp | gain)
+    tmp := (tmp | dB)
     writeRegX (core#AGCCTRL2, 1, @tmp)
 
 PUB MagnTarget(val) | tmp
 ' Set target value for averaged amplitude from digital channel filter, in dB
 '   Valid values:
-'       24, 27, 30, 33, 36, 38, 40, 42
+'       24, 27, 30, *33, 36, 38, 40, 42
 '   Any other value polls the chip and returns the current setting
     readRegX (core#AGCCTRL2, 1, @tmp)
     case val
@@ -635,7 +635,7 @@ PUB MagnTarget(val) | tmp
 
 PUB ManchesterEnc(enabled) | tmp
 ' Enable Manchester encoding/decoding
-'   Valid values: TRUE (-1 or 1), FALSE (0)
+'   Valid values: TRUE (-1 or 1), *FALSE (0)
 '   Any other value polls the chip and returns the current setting
     readRegX (core#MDMCFG2, 1, @tmp)
     case ||enabled
@@ -649,7 +649,7 @@ PUB ManchesterEnc(enabled) | tmp
     tmp := (tmp | enabled)
     writeRegX (core#MDMCFG2, 1, @tmp)
 
-PUB Modulation(format) | tmp
+PUB Modulation(type) | tmp
 ' Set modulation of transmitted or expected signal
 '   Valid values:
 '       FSK2 (%000): 2-level or binary Frequency Shift-Keyed
@@ -660,19 +660,19 @@ PUB Modulation(format) | tmp
 '   Any other value polls the chip and returns the current setting
 '   NOTE: MSK supported only at baud rates greater than 26k
     readRegX (core#MDMCFG2, 1, @tmp)
-    case format
+    case type
         FSK2, GFSK, ASKOOK, FSK4, MSK:
-            format := format << core#FLD_MOD_FORMAT
+            type := type << core#FLD_MOD_FORMAT
         OTHER:
             return (tmp >> core#FLD_MOD_FORMAT) & core#BITS_MOD_FORMAT
 
     tmp &= core#MASK_MOD_FORMAT
-    tmp := (tmp | format)
+    tmp := (tmp | type)
     writeRegX (core#MDMCFG2, 1, @tmp)
 
-PUB PacketLen(length) | tmp
-' Set packet length, when using fixed packet length mode,
-'   or maximum packet length when using variable packet length mode.
+PUB PayloadLen(length) | tmp
+' Set payload length, when using fixed payload length mode,
+'   or maximum payload length when using variable payload length mode.
 '   Valid values: 1..255
 '   Any other value polls the chip and returns the current setting
     readRegX (core#PKTLEN, 1, @tmp)
@@ -684,8 +684,8 @@ PUB PacketLen(length) | tmp
 
     writeRegX (core#PKTLEN, 1, @length)
 
-PUB PacketLenCfg(mode) | tmp
-' Set packet length mode
+PUB PayloadLenCfg(mode) | tmp
+' Set payload length mode
 '   Valid values:
 '       PKTLEN_FIXED (0): Fixed packet length mode. Set length with PacketLen
 '      *PKTLEN_VAR (1): Variable packet length mode. Packet length set by first byte after sync word
@@ -716,9 +716,9 @@ PUB PAWrite(buf_addr)
 '   NOTE: Table will be written starting at index 0 from the LSB of buf_addr
     writeRegX (core#PATABLE | core#BURST, 8, buf_addr)
 
-PUB Preamble(bytes) | tmp
+PUB PreambleLen(bytes) | tmp
 ' Set number of preamble bytes
-'   Valid values: 2, 3, 4, 6, 8, 12, 16, 24
+'   Valid values: 2, 3, *4, 6, 8, 12, 16, 24
 '   Any other value polls the chip and returns the current setting
     readRegX (core#MDMCFG1, 1, @tmp)
     case bytes
@@ -734,7 +734,7 @@ PUB Preamble(bytes) | tmp
 
 PUB PreambleQual(threshold) | tmp
 ' Set Preamble quality estimator threshold
-'   Valid values: 0, 4, 8, 12, 16, 20, 24, 28
+'   Valid values: *0, 4, 8, 12, 16, 20, 24, 28
 '   NOTE: If 0, the sync word is always accepted.
 '   Any other value polls the chip and returns the current setting
     readRegX (core#PKTCTRL1, 1, @tmp)
@@ -752,6 +752,7 @@ PUB PreambleQual(threshold) | tmp
 PUB Reset
 ' Reset the chip
     writeRegX (core#CS_SRES, 0, 0)
+    time.MSleep(5)
 
 PUB RSSI
 ' Received Signal Strength Indicator
@@ -761,13 +762,13 @@ PUB RSSI
     else
         result := (result / 2) - 74
 
-PUB RX
+PUB RXMode
 ' Change chip state to RX (receive)
     writeRegX (core#CS_SRX, 0, 0)
 
 PUB RXBandwidth(kHz) | tmp
 ' Set receiver channel filter bandwidth, in kHz
-'   Valid values: 812, 650, 541, 464, 406, 325, 270, 232, 203, 162, 135, 116, 102, 81, 68, 58
+'   Valid values: 812, 650, 541, 464, 406, 325, 270, 232, *203, 162, 135, 116, 102, 81, 68, 58
 '   Any other value polls the chip and returns the current setting
     readRegX (core#MDMCFG4, 1, @tmp)
     case kHz := lookdown(kHz: 812, 650, 541, 464, 406, 325, 270, 232, 203, 162, 135, 116, 102, 81, 68, 58)
@@ -791,7 +792,7 @@ PUB RXData(nr_bytes, buf_addr) | tmp
 PUB RXFIFOThresh(threshold) | tmp
 ' Set receive FIFO threshold, in bytes
 '   The threshold is exceeded when the number of bytes in the FIFO is greater than or equal to the threshold value.
-'   Valid values: 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64
+'   Valid values: 4, 8, 12, 16, 20, 24, 28, *32, 36, 40, 44, 48, 52, 56, 60, 64
 '   Any other value polls the chip and returns the current setting
 '   NOTE: This affects the TX FIFO, inversely
     readRegX (core#FIFOTHR, 1, @tmp)
@@ -806,7 +807,7 @@ PUB RXFIFOThresh(threshold) | tmp
     tmp := (tmp | threshold) & core#FIFOTHR_MASK
     writeRegX (core#FIFOTHR, 1, @tmp)
 
-PUB RXOff(next_state) | tmp
+PUB AfterRX(next_state) | tmp
 ' Defines the state the radio transitions to after a packet is successfully received
 '   Valid values:
 '       RXOFF_IDLE (0) - Idle state
@@ -864,6 +865,7 @@ PUB SyncMode(mode) | tmp
 PUB SyncWord(sync_word) | tmp
 ' Set transmitted (TX) or expected (RX) sync word
 '   Valid values: $0000..$FFFF
+'   Default value: $D391
 '   Any other value polls the chip and returns the current setting
     readRegX (core#SYNC1, 2, @tmp)
     case sync_word
@@ -873,7 +875,7 @@ PUB SyncWord(sync_word) | tmp
 
     writeRegX (core#SYNC1, 2, @sync_word)
 
-PUB TX
+PUB TXMode
 ' Change chip state to TX (transmit)
     writeRegX (core#CS_STX, 0, 0)
 
@@ -883,7 +885,7 @@ PUB TXData(nr_bytes, buf_addr)
 '   Any other value is ignored
     writeRegX (core#FIFO, nr_bytes, buf_addr)
 
-PUB TXOff(next_state) | tmp
+PUB AfterTX(next_state) | tmp
 ' Defines the state the radio transitions to after a packet is successfully transmitted
 '   Valid values:
 '       TXOFF_IDLE (0) - Idle state
@@ -903,15 +905,15 @@ PUB TXOff(next_state) | tmp
     tmp := (tmp | next_state)
     writeRegX (core#MCSM1, 1, @tmp)
 
-PUB Version
+PUB DeviceID
 ' Chip version number
 '   Returns: $14
 '   NOTE: Datasheet states this value is subject to change without notice
     readRegX (core#VERSION, 1, @result)
 
-PUB WhiteData(enabled) | tmp
+PUB DataWhitening(enabled) | tmp
 ' Enable data whitening
-'   Valid values: TRUE (-1 or 1), FALSE (0)
+'   Valid values: *TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
 '   NOTE: Applies to all data, except the preamble and sync word.
     readRegX (core#PKTCTRL0, 1, @tmp)
