@@ -779,6 +779,12 @@ PUB PayloadLenCfg(mode) | tmp
     tmp := (tmp | mode) & core#PKTCTRL0_MASK
     writeReg (core#PKTCTRL0, 1, @tmp)
 
+PUB PLLLocked
+' Indicates PLL is locked
+'   Returns: TRUE (-1) if locked, FALSE otherwise
+    readReg (core#FSCAL1, 1, @result)
+    return (result <> $3F)
+
 PUB PreambleLen(bytes) | tmp
 ' Set number of preamble bytes
 '   Valid values: 2, 3, *4, 6, 8, 12, 16, 24
