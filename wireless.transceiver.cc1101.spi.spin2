@@ -517,7 +517,7 @@ PUB DeviceID
 '   NOTE: Datasheet states this value is subject to change without notice
     readReg (core#VERSION, 1, @result)
 
-PUB DVGA(gain=-255) | tmp
+PUB DVGAGain(gain=-255) | tmp
 ' Set Digital Variable Gain Amplifier gain maximum level
 '   Valid values:
 '       *0 - Highest gain setting
