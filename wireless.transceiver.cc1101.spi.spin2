@@ -678,20 +678,20 @@ PUB Idle
 ' Change chip state to IDLE
     writeReg (core#CS_SIDLE, 0, 0)
 
-PUB IntFreq(kHz=-2) | tmp
-' Intermediate Frequency (IF), in kHz
-'   Valid values: 25..787 (result will be rounded to the nearest 5-bit result)
-'   Default value: 381
+PUB IntFreq(Hz=-2) | tmp
+' Intermediate Frequency (IF), in Hz
+'   Valid values: 25390..787109 (result will be rounded to the nearest 5-bit result)
+'   Default value: 380859
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg (core#FSCTRL1, 1, @tmp)
-    case kHz
-        25..787:
-            kHz := 1024/(F_XOSC/kHz)
+    case Hz
+        25390..787109:
+            Hz := 1024/(F_XOSC/Hz)
         OTHER:
-            return ((F_XOSC / 1024) * tmp) / 1000
+            return ((F_XOSC / 1024) * tmp)
 
-    writeReg (core#FSCTRL1, 1, @kHz)
+    writeReg (core#FSCTRL1, 1, @Hz)
 
 PUB LastCRC
 ' Indicates CRC of last reception matched
