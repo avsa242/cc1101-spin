@@ -3,9 +3,9 @@ i{
     Filename: CC1101-TXDemo.spin
     Author: Jesse Burt
     Description: Simple transmit demo of the cc1101 driver
-    Copyright (c) 2019
+    Copyright (c) 2020
     Started Nov 23, 2019
-    Updated Dec 22, 2019
+    Updated Apr 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -112,7 +112,7 @@ PUB Transmit | count, tmp, to_node
         cc1101.FlushTX
         cc1101.FSTX
         cc1101.TXMode
-        cc1101.TXData (_pktlen, @_fifo)
+        cc1101.TXPayload (_pktlen, @_fifo)
         time.Sleep (5)                              ' Try not to abuse the airwaves - wait between transmissions
 
 PUB Setup
@@ -126,13 +126,6 @@ PUB Setup
     else
         ser.str(string("CC1101 driver failed to start - halting", ser#CR, ser#LF))
         FlashLED (LED, 500)
-
-PUB FlashLED(led_pin, delay_ms)
-
-    io.Output(led_pin)
-    repeat
-        io.Toggle(led_pin)
-        time.MSleep(delay_ms)
 
 DAT
 ' Radio states
@@ -158,6 +151,8 @@ MARC_STATE  byte    "SLEEP           ", 0 {0}
             byte    "TX              ", 0 {19}
             byte    "TX_END          ", 0 {20}
             byte    "RXRX_SWITCH     ", 0 {21}
+
+#include "lib.utility.spin"
 
 DAT
 {

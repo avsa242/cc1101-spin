@@ -3,46 +3,37 @@
     Filename: CC1101-RXDemo.spin
     Author: Jesse Burt
     Description: Simple receive demo of the cc1101 driver
-    Copyright (c) 2019
+    Copyright (c) 2020
     Started Nov 23, 2019
-    Updated Dec 21, 2019                                                                                         
+    Updated Apr 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
 CON
 
-    XTAL            = cfg#XTAL
-    XDIV            = cfg#XDIV
-    XMUL            = cfg#XMUL
-    XDIVP           = cfg#XDIVP
-    XOSC            = cfg#XOSC
-    XSEL            = cfg#XSEL
-    XPPPP           = cfg#XPPPP
-    CLOCKFREQ       = cfg#CLOCKFREQ
-    SETFREQ         = cfg#SETFREQ
-    ENAFREQ         = cfg#ENAFREQ
+    _clkmode        = cfg#_clkmode
+    _xinfreq        = cfg#_xinfreq
 
     LED             = cfg#LED1
-    SER_RX          = cfg#SER_RX
-    SER_TX          = cfg#SER_TX
-    SER_BAUD        = 2_000_000
+    SER_RX          = 31
+    SER_TX          = 30
+    SER_BAUD        = 115_200
 
-    CS_PIN          = 27                            ' Change to your module's connections
-    SCK_PIN         = 26
-    MOSI_PIN        = 24
-    MISO_PIN        = 25
-    SCK_FREQ        = 5_000_000
+    CS_PIN          = 0                             ' Change to your module's connections
+    SCK_PIN         = 1
+    MOSI_PIN        = 2
+    MISO_PIN        = 3
 
     NODE_ADDRESS    = $01
 
 OBJ
 
     ser         : "com.serial.terminal.ansi"
-    cfg         : "core.con.boardcfg.p2eval"
+    cfg         : "core.con.boardcfg.flip"
     io          : "io"
     time        : "time"
     int         : "string.integer"
-    cc1101      : "wireless.transceiver.cc1101.spi.spin2"
+    cc1101      : "wireless.transceiver.cc1101.spi"
 
 VAR
 
@@ -55,22 +46,26 @@ PUB Main | choice
     Setup
 
     cc1101.GPIO0 (cc1101#IO_HI_Z)                   ' Set CC1101 GPIO0 to Hi-Z mode
-    ser.printf("Version: %x\n", cc1101.Version)
+    ser.str(string("Version: "))
+    ser.hex(cc1101.DeviceID, 2)
+    ser.newline
+
     cc1101.AutoCal(cc1101#IDLE_RXTX)                ' Perform auto-calibration when transitioning from Idle to RX
-    ser.printf("Autocal setting: %d\n", cc1101.AutoCal)
+    ser.str(string("Autocal setting: "))
+    ser.dec(cc1101.AutoCal(-2))
     cc1101.Idle
     
-    ser.printf("Waiting for radio idle status...")
+    ser.str(string("Waiting for radio idle status..."))
     repeat until cc1101.State == 1
-    ser.printf("done\n")
+    ser.str(string("done", ser#CR, ser#LF))
 
     cc1101.CarrierFreq(433_900_000)                 ' Set carrier frequency
 
-    ser.printf("Waiting for PLL lock...")
+    ser.str(string("Waiting for PLL lock..."))
     repeat until cc1101.PLLLocked == TRUE           ' Don't proceed until PLL is locked
-    ser.printf("done\n")
+    ser.str(string("done", ser#CR, ser#LF))
 
-    ser.printf("Press any key to begin receiving\n")
+    ser.str(string("Press any key to begin receiving", ser#CR, ser#LF))
     ser.CharIn
 
     Receive
@@ -90,9 +85,13 @@ PUB Receive | rxbytes, tmp, from_node
 
     ser.Clear
     ser.Position(0, 0)
-    ser.printf("Receive mode - %dHz\n", cc1101.CarrierFreq)
-    ser.printf("Listening for traffic on node address $")
-    ser.Hex(cc1101.NodeAddress, 2)
+    ser.str(string("Receive mode - "))
+    ser.dec(cc1101.CarrierFreq(-2))
+    ser.str(string("Hz"))
+    ser.newline
+
+    ser.str(string("Listening for traffic on node address $"))
+    ser.Hex(cc1101.NodeAddress(-2), 2)
 
     cc1101.AfterRX (cc1101#RXOFF_IDLE)              ' What state to change the radio to after reception
     cc1101.AddressCheck (cc1101#ADRCHK_CHK_NO_BCAST)' Address validation mode
@@ -102,19 +101,19 @@ PUB Receive | rxbytes, tmp, from_node
 
         cc1101.RXMode                               ' Change radio state to receive mode
         ser.Position(0, 5)
-        ser.PrintF("Radio state: ")
+        ser.str(string("Radio state: "))
         ser.Str (@MARC_STATE[17 * cc1101.State])
 
         repeat                                      ' Wait to proceed
             rxbytes := cc1101.FIFORXBytes
         until rxbytes => _pktlen                    ' until we've received at least _pktlen bytes
 
-        cc1101.RXData(rxbytes, @_fifo)
+        cc1101.RXPayload(rxbytes, @_fifo)
         cc1101.FlushRX
 
         from_node := _fifo.byte[1]                  ' Node we've received a packet from
         ser.Position(0, 9)
-        ser.Printf("Received packet from node $")
+        ser.str(string("Received packet from node $"))
         ser.Hex(from_node, 2)
         repeat tmp from 2 to rxbytes-1              ' Show received packet, minus the 2 'header' bytes
             ser.Position(((tmp-1) * 3), 10)
@@ -129,22 +128,15 @@ PUB Receive | rxbytes, tmp, from_node
 
 PUB Setup
 
-    clkset(ENAFREQ, CLOCKFREQ, XSEL)
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    time.MSleep(30)
     ser.Clear
-    ser.PrintF("Serial terminal started\n")
-    if _cc1101_cog := cc1101.Start (CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
-        ser.printf("CC1101 driver started\n")
+    ser.str(string("Serial terminal started", ser#CR, ser#LF))
+    if _cc1101_cog := cc1101.Start (CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
+        ser.str(string("CC1101 driver started", ser#CR, ser#LF))
     else
-        ser.printf("CC1101 driver failed to start - halting\n")
+        ser.str(string("CC1101 driver failed to start - halting", ser#CR, ser#LF))
         FlashLED (LED, 500)
-
-PUB FlashLED(led_pin, delay_ms)
-
-    io.Output(led_pin)
-    repeat
-        io.Toggle(led_pin)
-        time.MSleep(delay_ms)
 
 DAT
 ' Radio states
@@ -170,6 +162,8 @@ MARC_STATE  byte    "SLEEP           ", 0 {0}
             byte    "TX              ", 0 {19}
             byte    "TX_END          ", 0 {20}
             byte    "RXRX_SWITCH     ", 0 {21}
+
+#include "lib.utility.spin"
 
 DAT
 {
