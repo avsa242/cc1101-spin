@@ -3,9 +3,9 @@
     Filename: CC1101-Test.spin
     Author: Jesse Burt
     Description: Test object for the cc1101 driver
-    Copyright (c) 2019
+    Copyright (c) 2020
     Started Mar 25, 2019
-    Updated Dec 22, 2019
+    Updated Apr 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -28,8 +28,9 @@ CON
 OBJ
 
     cfg : "core.con.boardcfg.flip"
-    ser : "com.serial.terminal"
+    ser : "com.serial.terminal.ansi"
     time: "time"
+    io  : "io"
     rf  : "wireless.transceiver.cc1101.spi"
 
 VAR
@@ -69,7 +70,7 @@ PUB Main
     PKTLEN (1)
     ADR_CHK (1)
 
-    Flash (cfg#LED1)
+    FlashLED (cfg#LED1, 100)
 
 PUB ADR_CHK(reps) | tmp, read
 
@@ -382,12 +383,7 @@ PUB Setup
         time.MSleep (500)
         ser.Stop
 
-PUB Flash(pin)
-
-    dira[pin] := 1
-    repeat
-        !outa[pin]
-        time.MSleep (100)
+#include "lib.utility.spin"
 
 DAT
 {

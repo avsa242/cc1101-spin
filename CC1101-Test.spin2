@@ -3,9 +3,9 @@
     Filename: CC1101-Test.spin
     Author: Jesse Burt
     Description: Test app for the CC1101 driver
-    Copyright (c) 2019
+    Copyright (c) 2020
     Started Mar 25, 2019
-    Updated Dec 21, 2019
+    Updated Apr 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -41,10 +41,10 @@ CON
 
 OBJ
 
-    cfg : "core.con.boardcfg.p2eval"
-    ser : "com.serial.terminal.ansi"
-    time: "time"
-    io  : "io"
+    cfg     : "core.con.boardcfg.p2eval"
+    ser     : "com.serial.terminal.ansi"
+    time    : "time"
+    io      : "io"
     cc1101  : "wireless.transceiver.cc1101.spi"
 
 VAR
@@ -342,11 +342,11 @@ PUB Message(field, arg1, arg2)
             ser.Str (field)
 
             ser.PositionX (COL_SET)
-            ser.PrintF("SET: ")
+            ser.printf("SET: ")
             ser.Dec (arg1)
 
             ser.PositionX (COL_READ)
-            ser.PrintF("READ: ")
+            ser.printf("READ: ")
             ser.Dec (arg2)
             ser.Chars (32, 3)
             ser.PositionX (COL_PF)
@@ -358,51 +358,46 @@ PUB Message(field, arg1, arg2)
             ser.Str (field)
 
             ser.Position (COL_SET, _row)
-            ser.PrintF("SET: ")
+            ser.printf("SET: ")
             ser.Dec (arg1)
 
             ser.Position (COL_READ, _row)
-            ser.PrintF("READ: ")
+            ser.printf("READ: ")
             ser.Dec (arg2)
 
             ser.Position (COL_PF, _row)
             PassFail (arg1 == arg2)
             ser.NewLine
         OTHER:
-            ser.PrintF("DEADBEEF")
+            ser.printf("DEADBEEF")
 PUB PassFail(num)
 
     case num
         0:
-            ser.PrintF("FAIL")
+            ser.printf("FAIL")
             _fails++
 
         -1:
-            ser.PrintF("PASS")
+            ser.printf("PASS")
 
         OTHER:
-            ser.PrintF("???")
+            ser.printf("???")
 
 PUB Setup
 
-    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    clkset(ENAFREQ, CLOCKFREQ)
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
     ser.Clear
-    ser.PrintF("Serial terminal started\n")
+    ser.printf("Serial terminal started\n")
     if cc1101.Start (CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
-        ser.PrintF("CC1101 driver started\n")
+        ser.printf("CC1101 driver started\n")
     else
-        ser.PrintF("CC1101 driver failed to start - halting\n")
+        ser.printf("CC1101 driver failed to start - halting\n")
         cc1101.Stop
         time.MSleep (5)
         FlashLED(LED, 500)
 
-PUB FlashLED(led_pin, delay_ms)
-
-    io.Output(led_pin)
-    repeat
-        io.Toggle(led_pin)
-        time.MSleep(delay_ms)
+#include "lib.utility.spin2"
 
 DAT
 {
