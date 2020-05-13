@@ -897,6 +897,7 @@ PUB Reset
 
 PUB RSSI
 ' Received Signal Strength Indicator
+'   Returns: Signal strength seen by transceiver, in dBm
     result := $00
     readReg (core#RSSI, 1, @result)
     if result => 128
