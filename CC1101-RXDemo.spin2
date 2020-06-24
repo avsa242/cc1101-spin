@@ -34,7 +34,7 @@ OBJ
     ser         : "com.serial.terminal.ansi"
     cfg         : "core.con.boardcfg.p2eval"
     int         : "string.integer"
-    cc1101      : "wireless.transceiver.cc1101.spi.spin2"
+    cc1101      : "wireless.transceiver.cc1101.spi"
 
 VAR
 
