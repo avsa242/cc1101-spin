@@ -250,7 +250,6 @@ PUB AGCMode(mode): curr_mode
 '       AGC_FREEZE_A_AUTO_D (2): Freeze analog gain, but autmatically adjust digital gain
 '       AGC_OFF (3): Freeze both analog and digital gain settings
 '   Any other value polls the chip and returns the current setting
-
     curr_mode := 0
     readreg(core#AGCCTRL0, 1, @curr_mode)
     case mode
@@ -297,9 +296,9 @@ PUB AutoCal(mode): curr_mode
     mode := ((curr_mode & core#FS_AUTOCAL_MASK) | mode)
     writereg(core#MCSM0, 1, @mode)
 
-PUB CalcFreqWord(Hz): frq_word
+PUB CalcFreqWord(Hz): frq_word  'XXX review: obsolescence
 
-    frq_word := u64.multdiv(F_XOSC, U64SCALE, Hz)   'Need 64bit math to hold the large scaled up numbers
+    frq_word := u64.multdiv(F_XOSC, U64SCALE, Hz)
     return u64.multdiv(TWO16, U64SCALE, frq_word)
 
 PUB CalFreqSynth{}
@@ -324,7 +323,7 @@ PUB CarrierFreq(freq): curr_freq
 
     writereg(core#FREQ2, 3, @freq)
 
-PUB CarrierFreqWord(freq_word): curr_word
+PUB CarrierFreqWord(freq_word): curr_word   'XXX review: obsolescence
 ' Set carrier/center frequency, by frequency word (use CalcFreqWord to calculate)
 '   Any other value polls the chip and returns the current setting
     curr_word := 0
@@ -378,11 +377,11 @@ PUB CarrierSenseAbs(thresh): curr_thr
     writereg(core#AGCCTRL1, 1, @thresh)
 
 PUB Channel(number): curr_chan
-' Set device channel number
-'   Resulting frequency is the channel number multiplied by the channel spacing setting, added to the base frequency
+' Set channel number
 '   Valid values: 0..255
 '   Default value: 0
 '   Any other value polls the chip and returns the current setting
+'   NOTE: Resulting frequency = (channel number * channel spacing) + base freq
     curr_chan := 0
     readreg(core#CHANNR, 1, @curr_chan)
     case number
@@ -393,8 +392,8 @@ PUB Channel(number): curr_chan
     number &= core#CHANNR_MASK
     writereg(core#CHANNR, 1, @number)
 
-PUB ChannelSpacing(width): curr_wid | chanspc_e, chanspc_m, chanspc_res_tmp
-' Set channel spacing, in width
+PUB ChannelSpacing(width): curr_wid | chanspc_e, chanspc_m
+' Set channel spacing, in Hz
 '   Valid values: 25_390..405_456 (default: 199_951)
 '   Any other value polls the chip and returns the current setting
     longfill(@chanspc_e, 0, 3)
@@ -585,7 +584,7 @@ PUB FlushTX{}   'XXX review
 '            return
 
 PUB FreqDeviation(freq): curr_freq | tmp, deviat_m, deviat_e, tmp_m
-' Set frequency deviation from carrier, in freq
+' Set frequency deviation from carrier, in Hz
 '   Valid values:
 '       1_586..380_859
 '   Default value: 47_607
@@ -677,7 +676,7 @@ PUB Idle{}
     writereg(core#CS_SIDLE, 0, 0)
 
 PUB IntFreq(freq): curr_freq
-' Intermediate Frequency (IF), in freq
+' Intermediate Frequency (IF), in Hz
 '   Valid values: 25_390..787_109 (result will be rounded to the nearest 5-bit result)
 '   Default value: 380_859
 '   Any other value polls the chip and returns the current setting
@@ -805,7 +804,7 @@ PUB PAWrite(ptr_buff)
 '   NOTE: Table will be written starting at index 0 from the LSB of ptr_buff
     writereg(core#PATABLE | core#BURST, 8, ptr_buff)
 
-PUB PayloadLen(length) | curr_len
+PUB PayloadLen(length): curr_len
 ' Set payload length, when using fixed payload length mode,
 '   or maximum payload length when using variable payload length mode.
 '   Valid values: 1..*255
@@ -907,7 +906,7 @@ PUB RXBandwidth(width): curr_wid    'XXX review: case statement - move lookdown 
     width := ((curr_wid & core#CHANBW_MASK) | width)
     writereg(core#MDMCFG4, 1, @width)
 
-PUB RXFIFOThresh(thresh): curr_thr
+PUB RXFIFOThresh(thresh): curr_thr  'XXX review: case statement - move lookdown table to first case
 ' Set receive FIFO thresh, in bytes
 '   The threshold is exceeded when the number of bytes in the FIFO is greater
 '       than or equal to this value.
@@ -954,15 +953,22 @@ PUB Status{}: curr_status
 PUB SyncMode(mode): curr_mode
 ' Set sync-word qualifier mode
 '   Valid values:
-'       SYNCMODE_NONE (0): No preamble or syncword
+'       SYNCMODE_NONE (0): Ignore preamble, syncword and carrier level
 '       SYNCMODE_1516 (1): 15 of 16 syncword bits must match
 '      *SYNCMODE_1616 (2): 16 of 16 syncword bits must match
 '       SYNCMODE_3032 (3): 30 of 32 syncword bits must match
-'       SYNCMODE_CS_ONLY (4): No preamble or syncword. Carrier-sense must be above threshold
-'       SYNCMODE_1516_CS (5): 15 of 16 syncword bits must match, and carrier-sense must be above threshold
-'       SYNCMODE_1616_CS (6): 16 of 16 syncword bits must match, and carrier-sense must be above threshold
-'       SYNCMODE_3032_CS (7): 30 of 32 syncword bits must match, and carrier-sense must be above threshold
+'       SYNCMODE_CS_ONLY (4): Ignore preamble and syncword,
+'           but carrier must be above threshold
+'       SYNCMODE_1516_CS (5): 15 of 16 syncword bits must match,
+'           and carrier must be above threshold
+'       SYNCMODE_1616_CS (6): 16 of 16 syncword bits must match,
+'           and carrier must be above threshold
+'       SYNCMODE_3032_CS (7): 30 of 32 syncword bits must match,
+'           and carrier must be above threshold
 '   Any other value polls the chip and returns the current setting
+'   NOTE: A 32-bit syncword can be emulated by setting this method to
+'       SYNCMODE_3032 or SYNCMODE_3032_CS. In these cases, the syncword
+'       specified by SyncWord() will be transmitted twice.
     curr_mode := 0
     readreg(core#MDMCFG2, 1, @curr_mode)
     case mode
@@ -997,7 +1003,7 @@ PUB TXPayload(nr_bytes, ptr_buff)
 '   Any other value is ignored
     writereg(core#FIFO, nr_bytes, ptr_buff)
 
-PUB TXPower(pwr) | curr_pwr
+PUB TXPower(pwr): curr_pwr
 ' Set transmit power, in pwr
 '   Valid values: -30, -20, -15, -10, 0, 5, 7, 10
 '   Any other value polls the chip and returns the current setting
