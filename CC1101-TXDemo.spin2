@@ -46,22 +46,7 @@ VAR
 PUB Main() | i, tmp
 
     Setup()
-{
-    cc1101.carrierfreq(800_000_000)
-    tmp := 0
-    ser.clear()
-    ser.printf("waiting")
-    repeat until ser.charin()
-    cc1101.readreg($d, 3, @tmp)
-    ser.hex(tmp, 8)
-    ser.char(32)
-    ser.dec(cc1101.carrierfreq())
-    repeat
 
-
-    ser.dec(cc1101.carrierfreq())
-
-    repeat}
     cc1101.GPIO0 (cc1101.IO_HI_Z)                   ' Set CC1101 GPIO0 to Hi-Z mode
     cc1101.AutoCal(cc1101.IDLE_RXTX)                ' Perform auto-calibration when transitioning from Idle to TX
     cc1101.Idle()

@@ -134,7 +134,7 @@ PUB Stop{}
     spi.stop{}
 
 PUB Defaults{}
-
+' Factory default settings
     nodeaddress($00)
     addresscheck(ADRCHK_NONE)
     appendstatus(TRUE)
@@ -161,6 +161,18 @@ PUB Defaults{}
     syncmode(SYNCMODE_1616)
     syncword($D391)
     datawhitening(TRUE)
+
+PUB PresetRobust1{}
+' Like defaults, but with some basic improvements in robustness:
+' * check/filter address field in payload (2nd byte), ignore broadcast address
+' * perform oscillator auto-cal when transitioning from idle to RX or TX
+' * reject packets with a bad CRC (i.e., flush from receive buffer)
+' * turn off oscillator output on GPIO0 (GDO0)
+    defaults{}
+    addresscheck(ADRCHK_CHK_NO_BCAST)
+    autocal(IDLE_RXTX)
+    crcautoflush(TRUE)
+    gpio0(IO_HI_Z)
 
 PUB AddressCheck(mode): curr_mode
 ' Enable address checking/matching/filtering
