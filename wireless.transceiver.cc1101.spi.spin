@@ -5,22 +5,22 @@
     Description: Driver for TI's CC1101 ISM-band transceiver
     Copyright (c) 2020
     Started Mar 25, 2019
-    Updated Nov 23, 2020
+    Updated Nov 29, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    F_XOSC                  = 26_000_000        ' CC1101 XTAL Oscillator freq, in Hz
-    THIRTN                  = 1 << 13           ' 2^13
-    FOURTN                  = 1 << 14           ' 2^14
-    SIXTN                   = 1 << 16           ' 2^16
-    SEVENTN                 = 1 << 17           ' 2^17
-    EIGHTN                  = 1 << 18           ' 2^18
-    UM_FACT                 = 1_000_000_000     ' Scale to use in unsigned math object
-    UM_FREQ_RES             = 396_728515        ' (F_XOSC / SIXTN) * 1_000_000
-    CHANSPC_RES             = 99_182128         ' (F_XOSC / EIGHTN) * 1_000_000
+    F_XOSC                  = 26_000_000        ' CC1101 XTAL Oscillator freq
+    TWO13                   = 1 << 13           ' 2^13
+    TWO14                   = 1 << 14           ' 2^14
+    TWO16                   = 1 << 16           ' 2^16
+    TWO17                   = 1 << 17           ' 2^17
+    TWO18                   = 1 << 18           ' 2^18
+    U64SCALE                = 1_000_000_000     ' Unsigned math scale
+    U64_FREQ_RES            = 396_728515        ' (F_XOSC / TWO16) * 1_000_000
+    CHANSPC_RES             = 99_182128         ' (F_XOSC / TWO18) * 1_000_000
 
 ' Auto-calibration state
     NEVER                   = 0
@@ -92,14 +92,14 @@ CON
 VAR
 
     byte _CS, _MOSI, _MISO, _SCK
-    byte _status_byte
+    byte _status
 
 OBJ
 
     spi     : "com.spi.4w"
     core    : "core.con.cc1101"
     time    : "time"
-    umath   : "math.unsigned64"
+    u64     : "math.unsigned64"
     io      : "io"
 
 PUB Null{}
@@ -236,8 +236,8 @@ PUB AGCFilterLen(len): curr_len
         8, 16, 32, 64:
             len := lookdownz(len: 8, 16, 32, 64) & core#FILT_LEN_BITS
         other:
-            result := curr_len & core#FILT_LEN_BITS
-            return lookupz(result: 8, 16, 32, 64)
+            curr_len := curr_len & core#FILT_LEN_BITS
+            return lookupz(curr_len: 8, 16, 32, 64)
 
     len := ((curr_len & core#FILT_LEN_MASK) | len) & core#AGCCTRL0_MASK
     writereg(core#AGCCTRL0, 1, @len)
@@ -299,8 +299,8 @@ PUB AutoCal(mode): curr_mode
 
 PUB CalcFreqWord(Hz): frq_word
 
-    frq_word := umath.multdiv(F_XOSC, UM_FACT, Hz)   'Need 64bit math to hold the large scaled up numbers
-    return umath.multdiv(SIXTN, UM_FACT, frq_word)
+    frq_word := u64.multdiv(F_XOSC, U64SCALE, Hz)   'Need 64bit math to hold the large scaled up numbers
+    return u64.multdiv(TWO16, U64SCALE, frq_word)
 
 PUB CalFreqSynth{}
 ' Calibrate the frequency synthesizer
@@ -317,10 +317,10 @@ PUB CarrierFreq(freq): curr_freq
     readreg(core#FREQ2, 3, @curr_freq)
     case freq
         300_000_000..348_000_000, 387_000_000..464_000_000, 779_000_000..928_000_000:
-            freq := umath.multdiv(F_XOSC, UM_FACT, freq)
-            freq := umath.multdiv(SIXTN, UM_FACT, freq)
+            freq := u64.multdiv(F_XOSC, U64SCALE, freq)
+            freq := u64.multdiv(TWO16, U64SCALE, freq)
         other:
-            return umath.multdiv(curr_freq, UM_FREQ_RES, 1_000_000)
+            return u64.multdiv(curr_freq, U64_FREQ_RES, 1_000_000)
 
     writereg(core#FREQ2, 3, @freq)
 
@@ -409,7 +409,7 @@ PUB ChannelSpacing(width): curr_wid | chanspc_e, chanspc_m, chanspc_res_tmp
             chanspc_e := curr_wid.byte[0] & core#CHANSPC_E_BITS
             chanspc_m := curr_wid.byte[1]
             curr_wid := (256 + chanspc_m) * (1 << chanspc_e)
-            return umath.multdiv(CHANSPC_RES, curr_wid, 1_000_000)
+            return u64.multdiv(CHANSPC_RES, curr_wid, 1_000_000)
 
     width.byte[0] &= core#CHANSPC_E_MASK
     width.byte[0] |= chanspc_e
@@ -578,7 +578,7 @@ PUB FlushRX{}   'XXX review
 PUB FlushTX{}   'XXX review
 ' Flush transmit FIFO/buffer
 '   NOTE: Will only flush TX buffer if underflowed or if chip is idle, per datasheet recommendation
-'    case _status_byte
+'    case _status
 '        core#MARCSTATE_TXFIFO_UNDERFLOW, core#MARCSTATE_IDLE:
             writereg(core#CS_SFTX, 0, 0)
 '        other:
@@ -597,15 +597,15 @@ PUB FreqDeviation(freq): curr_freq | tmp, deviat_m, deviat_e, tmp_m
     readreg(core#DEVIATN, 1, @tmp)
     case freq
         1_587..380_859:
-            deviat_e := umath.multdiv(freq, FOURTN, F_XOSC)
+            deviat_e := u64.multdiv(freq, TWO14, F_XOSC)
             deviat_e := log2(deviat_e)
             tmp_m := F_XOSC * (1 << deviat_e)
-            deviat_m := umath.multdiv(freq, SEVENTN, tmp_m)
+            deviat_m := u64.multdiv(freq, TWO17, tmp_m)
             freq := (deviat_e << core#DEVIAT_E) | deviat_m
         other:
             deviat_m := tmp & core#DEVIAT_M_BITS
             deviat_e := (tmp >> core#DEVIAT_E) & core#DEVIAT_E_BITS
-            return F_XOSC / SEVENTN * (8 + deviat_m) * (1 << deviat_e)
+            return F_XOSC / TWO17 * (8 + deviat_m) * (1 << deviat_e)
 
     freq &= core#DEVIATN_MASK
     writereg(core#DEVIATN, 1, @freq)
@@ -949,7 +949,7 @@ PUB State{}: curr_state
 PUB Status{}: curr_status
 ' Read the status byte
     writereg(core#CS_SNOP, 0, 0)
-    return _status_byte
+    return _status
 
 PUB SyncMode(mode): curr_mode
 ' Set sync-word qualifier mode
@@ -1122,7 +1122,7 @@ PRI writeReg(reg_nr, nr_bytes, ptr_buff) | tmp
         core#CS_SRES..core#CS_SNOP:             ' Command strobes
             io.low(_CS)
             spi.shiftout(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg_nr)
-            _status_byte := spi.shiftin(_MISO, _SCK, core#MISO_BITORDER, 8)
+            _status := spi.shiftin(_MISO, _SCK, core#MISO_BITORDER, 8)
             io.high(_CS)
             return
         core#FIFO:
