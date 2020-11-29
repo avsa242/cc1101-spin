@@ -20,10 +20,11 @@ CON
     SER_TX          = cfg.SER_TX
     SER_BAUD        = 2_000_000
 
-    CS_PIN          = 27                             ' Change to your module's connections
-    SCK_PIN         = 26
-    MOSI_PIN        = 24
-    MISO_PIN        = 25
+    BASE            = 16
+    CS_PIN          = BASE+3'27                             ' Change to your module's connections
+    SCK_PIN         = BASE+2'26
+    MOSI_PIN        = BASE'24
+    MISO_PIN        = BASE+1'25
     SCK_FREQ        = 5_000_000
 
     NODE_ADDRESS    = $02
@@ -42,10 +43,25 @@ VAR
     long _fifo[16]
     byte _pktlen
 
-PUB Main()
+PUB Main() | i, tmp
 
     Setup()
+{
+    cc1101.carrierfreq(800_000_000)
+    tmp := 0
+    ser.clear()
+    ser.printf("waiting")
+    repeat until ser.charin()
+    cc1101.readreg($d, 3, @tmp)
+    ser.hex(tmp, 8)
+    ser.char(32)
+    ser.dec(cc1101.carrierfreq())
+    repeat
 
+
+    ser.dec(cc1101.carrierfreq())
+
+    repeat}
     cc1101.GPIO0 (cc1101.IO_HI_Z)                   ' Set CC1101 GPIO0 to Hi-Z mode
     cc1101.AutoCal(cc1101.IDLE_RXTX)                ' Perform auto-calibration when transitioning from Idle to TX
     cc1101.Idle()
@@ -108,7 +124,7 @@ PUB Transmit() | count, tmp, to_node
         cc1101.FSTX()
         cc1101.TXMode()
         cc1101.TXPayload (_pktlen, @_fifo)
-        time.Sleep (5)                              ' Try not to abuse the airwaves - wait between transmissions
+        time.Sleep (1)                              ' Try not to abuse the airwaves - wait between transmissions
 
 PUB Setup()
 
