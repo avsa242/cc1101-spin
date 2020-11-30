@@ -155,6 +155,11 @@ PUB Defaults()
     syncword($D391)
     datawhitening(TRUE)
 
+PUB PresetFixedPktlen()
+' Like PresetRobust1(), but sets packet length config mode to fixed-length
+    presetrobust1()
+    payloadlencfg(PKTLEN_FIXED)
+
 PUB PresetRobust1()
 ' Like defaults, but with some basic improvements in robustness:
 ' * check/filter address field in payload (2nd byte), ignore broadcast address
