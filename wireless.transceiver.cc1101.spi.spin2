@@ -870,18 +870,21 @@ PUB RSSI(): level
     readreg(core.RSSI, 1, @level)
     level := ((level signx 7) / 2) - 74
 
-PUB RXBandwidth(width=-2): curr_wid    'XXX review: case statement - move lookdown table to first case
-' Set receiver channel filter bandwidth, in width
+PUB RXBandwidth(width=-2): curr_wid
+' Set receiver channel filter bandwidth, in kHz
 '   Valid values: 812, 650, 541, 464, 406, 325, 270, 232, *203, 162, 135, 116, 102, 81, 68, 58
 '   Any other value polls the chip and returns the current setting
     curr_wid := 0
     readreg(core.MDMCFG4, 1, @curr_wid)
-    case width := lookdown(width: 812, 650, 541, 464, 406, 325, 270, 232, 203, 162, 135, 116, 102, 81, 68, 58)
-        1..16:
-            width := (width-1) << core.CHANBW
+    case width
+        812, 650, 541, 464, 406, 325, 270, 232, 203, 162, 135, 116, 102, 81,{
+        } 68, 58:
+            width := (lookdown(width: 812, 650, 541, 464, 406, 325, 270, 232,{
+            } 203, 162, 135, 116, 102, 81, 68, 58)-1) << core#CHANBW
         other:
             curr_wid := ((curr_wid >> core.CHANBW) & core.CHANBW_BITS)+1
-            return lookup(curr_wid: 812, 650, 541, 464, 406, 325, 270, 232, 203, 162, 135, 116, 102, 81, 68, 58)
+            return lookup(curr_wid: 812, 650, 541, 464, 406, 325, 270, 232, 203,{
+            } 162, 135, 116, 102, 81, 68, 58)
 
     width := ((curr_wid & core.CHANBW_MASK) | width)
     writereg(core.MDMCFG4, 1, @width)
