@@ -301,11 +301,6 @@ PUB AutoCal(mode=-2): curr_mode
     mode := ((curr_mode & core.FS_AUTOCAL_MASK) | mode)
     writereg(core.MCSM0, 1, @mode)
 
-PUB CalcFreqWord(Hz=-2): frq_word   'XXX review: obsolescence
-
-    frq_word := u64.multdiv(F_XOSC, U64SCALE, Hz)
-    return u64.multdiv(TWO16, U64SCALE, frq_word)
-
 PUB CalFreqSynth()
 ' Calibrate the frequency synthesizer
     writereg(core.CS_SCAL, 0, 0)
@@ -327,22 +322,6 @@ PUB CarrierFreq(freq=-2): curr_freq
             return u64.multdiv(curr_freq, U64_FREQ_RES, 1_000_000)
 
     writereg(core.FREQ2, 3, @freq)
-
-PUB CarrierFreqWord(freq_word=-2): curr_word    'XXX review: obsolescence
-' Set carrier/center frequency, by frequency word (use CalcFreqWord to calculate)
-'   Any other value polls the chip and returns the current setting
-    curr_word := 0
-    readreg(core.FREQ2, 3, @curr_word)
-    case freq_word
-        $0B_89_D9..$0D_62_76, $0E_E2_76..$11_D8_9E, $1D_F6_27..$23_B1_3B:
-            freq_word.byte[3] := freq_word.byte[0]                    'Reverse the byte order - the CC1101 registers are MSB-MB-LSB
-            freq_word.byte[0] := freq_word.byte[2]                    ' but they'd by written LSB-MB-MSB without the swap
-            freq_word.byte[2] := freq_word.byte[3]
-            freq_word.byte[3] := 0
-        other:
-            return curr_word
-
-    writereg(core.FREQ2, 3, @freq_word)
 
 PUB CarrierSense(thresh=-2): curr_thr
 ' Set relative change threshold for asserting carrier sense, in dB
@@ -614,12 +593,6 @@ PUB FreqDeviation(freq=-2): curr_freq | tmp, deviat_m, deviat_e, tmp_m
     freq &= core.DEVIATN_MASK
     writereg(core.DEVIATN, 1, @freq)
 
-PUB FreqTable(table_addr, entry_nr, freq_word) | tmp    'XXX review: obsolescence
-
-    byte[table_addr][entry_nr*3] := freq_word.byte[0]
-    byte[table_addr][(entry_nr*3)+1] := freq_word.byte[1]
-    byte[table_addr][(entry_nr*3)+2] := freq_word.byte[2]
-
 PUB FSTX()  'XXX review: name (API change)
 ' Enable frequency synthesizer and calibrate
     writereg(core.CS_SFSTXON, 0, 0)
@@ -695,7 +668,7 @@ PUB IntFreq(freq=-2): curr_freq
 
     writereg(core.FSCTRL1, 1, @freq)
 
-PUB LastCRC(): flag     'XXX review: name (LastCRCGood()?)
+PUB LastCRCGood(): flag
 ' Indicates CRC of last reception matched
 '   Returns: TRUE if comparison matched, FALSE otherwise
     readreg(core.LQI, 1, @flag)
