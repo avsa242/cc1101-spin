@@ -993,41 +993,34 @@ PUB TXPayload(nr_bytes, ptr_buff)
     writereg(core#FIFO, nr_bytes, ptr_buff)
 
 PUB TXPower(pwr): curr_pwr
-' Set transmit power, in pwr
+' Set transmit power, in dBm
 '   Valid values: -30, -20, -15, -10, 0, 5, 7, 10
 '   Any other value polls the chip and returns the current setting
     curr_pwr := 0
     readreg(core#PATABLE, 1, @curr_pwr)
     case pwr
-        -30, -20, -15, -10, 0, 5, 7, 10: 'XXX consolidate below into one lookdown, before the 2nd CASE
-            case carrierfreq(-2)        ' Value written to radio depends on current frequency band
-                285_000_000..322_000_000:
-                    pwr := lookdown(pwr: -30, -20, -15, -10, 0, 5, 7, 10)
+        -30, -20, -15, -10, 0, 5, 7, 10:
+            pwr := lookdown(pwr: -30, -20, -15, -10, 0, 5, 7, 10)
+            case carrierfreq(-2)                ' set power reg. value depends
+                285_000_000..322_000_000:       '   on current freq. band
                     pwr := lookup(pwr: $12, $0D, $1C, $34, $51, $85, $CB, $C2)
                 420_000_000..450_000_000:
-                    pwr := lookdown(pwr: -30, -20, -15, -10, 0, 5, 7, 10)
                     pwr := lookup(pwr: $12, $0E, $1D, $34, $60, $84, $C8, $C0)
                 854_000_000..894_000_000:
-                    pwr := lookdown(pwr: -30, -20, -15, -10, 0, 5, 7, 10)
                     pwr := lookup(pwr: $03, $0F, $1E, $27, $50, $81, $CB, $C2)
                 902_000_000..928_000_000:
-                    pwr := lookdown(pwr: -30, -20, -15, -10, 0, 5, 7, 10)
                     pwr := lookup(pwr: $03, $0E, $1E, $27, $8E, $CD, $C7, $C0)
         other:
             case carrierfreq(-2)
                 285_000_000..322_000_000:
                     curr_pwr := lookdown(curr_pwr: $12, $0D, $1C, $34, $51, $85, $CB, $C2)
-                    curr_pwr := lookup(curr_pwr: -30, -20, -15, -10, 0, 5, 7, 10)
                 420_000_000..450_000_000:
                     curr_pwr := lookdown(curr_pwr: $12, $0E, $1D, $34, $60, $84, $C8, $C0)
-                    curr_pwr := lookup(curr_pwr: -30, -20, -15, -10, 0, 5, 7, 10)
                 854_000_000..894_000_000:
                     curr_pwr := lookdown(curr_pwr: $03, $0F, $1E, $27, $50, $81, $CB, $C2)
-                    curr_pwr := lookup(curr_pwr: -30, -20, -15, -10, 0, 5, 7, 10)
                 902_000_000..928_000_000:
                     curr_pwr := lookdown(curr_pwr: $03, $0E, $1E, $27, $8E, $CD, $C7, $C0)
-                    curr_pwr := lookup(curr_pwr: -30, -20, -15, -10, 0, 5, 7, 10)
-            return
+            return lookup(curr_pwr: -30, -20, -15, -10, 0, 5, 7, 10)
 
     writereg(core#PATABLE, 1, @pwr)
 
