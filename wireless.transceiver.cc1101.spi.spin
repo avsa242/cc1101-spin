@@ -896,7 +896,7 @@ PUB RXBandwidth(width): curr_wid
     width := ((curr_wid & core#CHANBW_MASK) | width)
     writereg(core#MDMCFG4, 1, @width)
 
-PUB RXFIFOThresh(thresh): curr_thr  'XXX review: case statement - move lookdown table to first case
+PUB RXFIFOThresh(thresh): curr_thr
 ' Set receive FIFO thresh, in bytes
 '   The threshold is exceeded when the number of bytes in the FIFO is greater
 '       than or equal to this value.
@@ -905,12 +905,11 @@ PUB RXFIFOThresh(thresh): curr_thr  'XXX review: case statement - move lookdown 
 '   NOTE: This affects the TX FIFO, inversely
     curr_thr := 0
     readreg(core#FIFOTHR, 1, @curr_thr)
-    case thresh := lookdown(thresh: 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64)
-        1..16:
-            thresh := (thresh-1) & core#FIFO_THR_BITS
+    case thresh
+        4..64:
+            thresh := (thresh / 4) - 1
         other:
-            curr_thr := (curr_thr & core#FIFO_THR_BITS) + 1
-            return lookup(curr_thr: 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64)
+            return ((curr_thr & core#FIFO_THR_BITS) + 1) * 4
 
     thresh := ((curr_thr & core#FIFO_THR_MASK) | thresh) & core#FIFOTHR_MASK
     writereg(core#FIFOTHR, 1, @thresh)
