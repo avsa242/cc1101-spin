@@ -5,7 +5,7 @@
     Description: Driver for TI's CC1101 ISM-band transceiver
     Copyright (c) 2020
     Started Mar 25, 2019
-    Updated Nov 29, 2020
+    Updated Nov 30, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -870,10 +870,7 @@ PUB RSSI{}: level
 '   Returns: Signal strength seen by transceiver, in dBm
     level := 0
     readreg(core#RSSI, 1, @level)
-    if level => 128 'XXX review: use ~ sign extend operator instead?
-        level := ((level - 256) / 2) - 74
-    else
-        level := (level / 2) - 74
+    level := (~level / 2) - 74
 
 PUB RXBandwidth(width): curr_wid    'XXX review: case statement - move lookdown table to first case
 ' Set receiver channel filter bandwidth, in width
