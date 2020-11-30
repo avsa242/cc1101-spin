@@ -676,8 +676,8 @@ PUB IntFreq(freq): curr_freq
     writereg(core#FSCTRL1, 1, @freq)
 
 PUB LastCRCGood{}: flag
-' Indicates CRC of last reception matched
-'   Returns: TRUE if comparison matched, FALSE otherwise
+' Flag indicating CRC of last reception matched
+'   Returns: TRUE (-1) if comparison matched, FALSE (0) otherwise
     readreg(core#LQI, 1, @flag)
     return ((flag >> core#CRC_OK) & %1) == 1
 
@@ -850,8 +850,8 @@ PUB PreambleQual(thresh): curr_thr
 '   Any other value polls the chip and returns the current setting
     curr_thr := 0
     readreg(core#PKTCTRL1, 1, @curr_thr)
-    case lookdown(thresh: 0, 4, 8, 12, 16, 20, 24, 28)
-        1..8:
+    case thresh
+        0, 4, 8, 12, 16, 20, 24, 28:
             thresh := lookdownz(thresh: 0, 4, 8, 12, 16, 20, 24, 28) << core#PQT
         other:
             curr_thr := ((curr_thr >> core#PQT) & core#PQT_BITS)
