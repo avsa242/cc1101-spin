@@ -6,7 +6,7 @@
         (P2 version)
     Copyright (c) 2020
     Started Mar 25, 2019
-    Updated Nov 30, 2020
+    Updated Dec 1, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -521,7 +521,7 @@ PUB DVGAGain(gain=-255): curr_gain
             gain := abs(gain) << core.MAX_DVGA_GAIN
         other:
             curr_gain := (curr_gain >> core.MAX_DVGA_GAIN) & core.MAX_DVGA_GAIN_BITS
-            return curr_gain * -1   'XXX
+            return curr_gain * -1
 
     gain := ((curr_gain & core.MAX_DVGA_GAIN_MASK) | gain)
     writereg(core.AGCCTRL2, 1, @gain)
@@ -554,23 +554,13 @@ PUB FIFOTXBytes(): nr_bytes
     nr_bytes := 0
     readreg(core.TXBYTES, 1, @nr_bytes)
 
-PUB FlushRX()   'XXX review
+PUB FlushRX()
 ' Flush receive FIFO/buffer
-'   NOTE: Will only flush RX buffer if overflowed or if chip is idle, per datasheet recommendation
-'    case Status
-'        core.MARCSTATE_RXFIFO_OVERFLOW, core.MARCSTATE_IDLE:
-            writereg(core.CS_SFRX, 0, 0)
-'        other:
-'            return
+    writereg(core.CS_SFRX, 0, 0)
 
-PUB FlushTX()   'XXX review
+PUB FlushTX()
 ' Flush transmit FIFO/buffer
-'   NOTE: Will only flush TX buffer if underflowed or if chip is idle, per datasheet recommendation
-'    case _status
-'        core.MARCSTATE_TXFIFO_UNDERFLOW, core.MARCSTATE_IDLE:
             writereg(core.CS_SFTX, 0, 0)
-'        other:
-'            return
 
 PUB FreqDeviation(freq=-2): curr_freq | tmp, deviat_m, deviat_e, tmp_m
 ' Set frequency deviation from carrier, in Hz
