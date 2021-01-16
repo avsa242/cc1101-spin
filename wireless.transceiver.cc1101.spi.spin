@@ -567,7 +567,7 @@ PUB FlushRX{}
 
 PUB FlushTX{}
 ' Flush transmit FIFO/buffer
-            writereg(core#CS_SFTX, 0, 0)
+    writereg(core#CS_SFTX, 0, 0)
 
 PUB FreqDeviation(freq): curr_freq | tmp, deviat_m, deviat_e, tmp_m
 ' Set frequency deviation from carrier, in Hz
