@@ -599,7 +599,7 @@ PUB GPIO0(mode=-2): curr_mode 'XXX review: consolidation with other like methods
 '   Any other value polls the chip and returns the current setting
 '   NOTE: The default setting is IO_CLK_XODIV192, which outputs the CC1101's XO clock, divided by 192 on the pin.
 '       TI recommends the clock outputs be disabled when the radio is active, for best performance.
-'       Only one IO pin at a time can be modeured as a clock output.
+'       Only one IO pin at a time can be configured as a clock output.
     curr_mode := 0
     readreg(core.IOCFG0, 1, @curr_mode)
     case mode
