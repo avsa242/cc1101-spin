@@ -45,9 +45,9 @@ CON
         GDO1_INV                    = 6
         GDO1_CFG                    = 0
         GDO1_CFG_BITS               = %111111
-        GDO1_DS_MASK                = (1 << GDO1_DS) ^ IOCFG1_MASK 
-        GDO1_INV_MASK               = (1 << GDO1_INV) ^ IOCFG1_MASK 
-        GDO1_CFG_MASK               = (GDO1_CFG_BITS << GDO1_CFG) ^ IOCFG1_MASK 
+        GDO1_DS_MASK                = (1 << GDO1_DS) ^ IOCFG1_MASK
+        GDO1_INV_MASK               = (1 << GDO1_INV) ^ IOCFG1_MASK
+        GDO1_CFG_MASK               = (GDO1_CFG_BITS << GDO1_CFG) ^ IOCFG1_MASK
 
     IOCFG0                          = $02
     IOCFG0_MASK                     = $FF
