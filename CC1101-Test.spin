@@ -31,7 +31,7 @@ OBJ
     ser : "com.serial.terminal.ansi"
     time: "time"
     io  : "io"
-    rf  : "wireless.transceiver.cc1101.spi"
+    rf  : "wireless.transceiver.cc1101"
 
 VAR
 

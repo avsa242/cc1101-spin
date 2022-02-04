@@ -32,7 +32,7 @@ OBJ
     cfg         : "core.con.boardcfg.flip"
     time        : "time"
     int         : "string.integer"
-    cc1101      : "wireless.transceiver.cc1101.spi"
+    cc1101      : "wireless.transceiver.cc1101"
 
 VAR
 
