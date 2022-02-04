@@ -133,7 +133,7 @@ PUB Setup{}
     time.msleep(30)
     ser.clear{}
     ser.strln(string("Serial terminal started"))
-    if cc1101.start(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
+    if cc1101.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
         ser.strln(string("CC1101 driver started"))
     else
         ser.strln(string("CC1101 driver failed to start - halting"))
