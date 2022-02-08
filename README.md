@@ -8,7 +8,7 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 driver object for Texas Instr
 ## Salient Features
 
 * SPI connection at up to 1MHz (P1), ~5MHz (P2)
-* Over-the-air (OTA) data rate from 1kBaud to 500kBaud
+* Over-the-air (OTA) data rate from 600 Baud to 500kBaud
 * 2FSK, 4FSK, GFSK, ASK/OOK, MSK modulation formats
 * Set common RF parameters: Receive bandwidth, IF, carrier freq, DC block filter, RX Gain, TX power, FSK deviation freq, channel spacing
 * Set number of preamble bytes
@@ -40,5 +40,4 @@ P2/SPIN2:
 ## Limitations
 
 * Very early in development - may malfunction or outright fail to build
-* Available OTA baud rates are currently just common presets from 1k to 500k.
 
