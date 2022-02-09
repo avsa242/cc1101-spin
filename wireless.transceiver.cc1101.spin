@@ -5,7 +5,7 @@
     Description: Driver for TI's CC1101 ISM-band transceiver
     Copyright (c) 2022
     Started Mar 25, 2019
-    Updated Feb 8, 2022
+    Updated Feb 9, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -450,12 +450,12 @@ PUB CrystalOff{}
 ' Turn off crystal oscillator
     writereg(core#CS_SXOFF, 0, 0)
 
-PUB DataRate(rate): curr_rate | tmp, curr_exp, curr_mant, dr_exp, dr_mant
+PUB DataRate(rate): curr_rate | curr_exp, curr_mant, dr_exp, dr_mant
 ' Set on-air data rate, in bps
 '   Valid values: 600..500_000
 '   Default value: 115_051
 '   Any other value polls the chip and returns the current setting
-    longfill(@tmp, 0, 5)
+    longfill(@curr_exp, 0, 4)
 
     readreg(core#MDMCFG4, 1, @curr_exp)
     readreg(core#MDMCFG3, 1, @curr_mant)
