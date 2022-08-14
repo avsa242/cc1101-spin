@@ -6,7 +6,7 @@
         (P2 version)
     Copyright (c) 2022
     Started Nov 29, 2020
-    Updated Feb 4, 2022
+    Updated Aug 14, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -37,7 +37,6 @@ OBJ
 
     ser     : "com.serial.terminal.ansi"
     cfg     : "core.con.boardcfg.p2eval"
-    int     : "string.integer"
     str     : "string"
     cc1101  : "wireless.transceiver.cc1101"
 

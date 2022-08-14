@@ -3,9 +3,9 @@
     Filename: CC1101-SimpleTX.spin
     Author: Jesse Burt
     Description: Simple transmit demo of the cc1101 driver
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Nov 29, 2020
-    Updated May 16, 2021
+    Updated Aug 14, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -38,7 +38,6 @@ OBJ
     ser     : "com.serial.terminal.ansi"
     cfg     : "core.con.boardcfg.flip"
     time    : "time"
-    int     : "string.integer"
     cc1101  : "wireless.transceiver.cc1101"
     sf      : "string.format"
 
@@ -47,7 +46,7 @@ VAR
     byte _pkt_tmp[MAX_PAYLD]
     long _user_str[8]
 
-PUB Main{} | counter, str_counter, i, pktlen
+PUB Main{} | counter, i, pktlen
 
     setup{}
 
@@ -65,16 +64,13 @@ PUB Main{} | counter, str_counter, i, pktlen
     repeat
         bytefill(@_pkt_tmp, 0, MAX_PAYLD)       ' clear out buffer
 
-        ' add a counter to the end of the payload
-        str_counter := int.deczeroed(counter++, 4)
-
         ' payload size is user string, the counter digits, and the address
         pktlen := strsize(_user_str) + strsize(str_counter) + 1
         _pkt_tmp[POS_PKTLEN] := pktlen          ' 1st byte is payload length
         _pkt_tmp[POS_TONODE] := TO_NODE         ' 2nd byte is destination addr
 
         ' assemble the payload and copy it to the temporary buffer
-        sf.sprintf2(@_pkt_tmp[POS_PAYLD], string("%s%s"), _user_str, str_counter)
+        sf.sprintf2(@_pkt_tmp[POS_PAYLD], string("%s%04.4d"), _user_str, counter++)
 
         ser.position(0, 3)
         ser.printf2(string("Sending (%d): %s\n\r"), pktlen, @_pkt_tmp[POS_PAYLD])

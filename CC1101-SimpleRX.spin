@@ -3,9 +3,9 @@
     Filename: CC1101-SimpleRX.spin
     Author: Jesse Burt
     Description: Simple receive demo of the cc1101 driver
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Nov 29, 2020
-    Updated May 16, 2021
+    Updated Aug 14, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -36,7 +36,6 @@ OBJ
     ser     : "com.serial.terminal.ansi"
     cfg     : "core.con.boardcfg.flip"
     time    : "time"
-    int     : "string.integer"
     str     : "string"
     cc1101  : "wireless.transceiver.cc1101"
 
