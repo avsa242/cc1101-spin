@@ -75,15 +75,12 @@ PUB main{} | counter, i, pktlen
         ser.position(0, 3)
         ser.printf2(string("Sending (%d): %s\n\r"), pktlen, @_pkt_tmp[POS_PAYLD])
 
-        repeat i from 0 to pktlen               ' show the packet sent as
-            ser.hexs(_pkt_tmp[i], 2)            '   a simple hex dump
-            ser.char(32)
-        ser.newline{}
-
-        ser.strln(string("|  |  |"))
-        ser.strln(string("|  |  *- start of payload/data"))
-        ser.strln(string("|  *---- node address to transmit to"))
-        ser.strln(string("*------- length of payload (including address byte)"))
+        { show hexdump of the packet, including non-payload data (length) }
+        ser.hexdump(@_pkt_tmp, 0, 2, (pktlen+1), 16 <# (pktlen+1))
+        ser.strln(string("    |  |  |"))
+        ser.strln(string("    |  |  *- start of payload/data"))
+        ser.strln(string("    |  *---- node address to transmit to"))
+        ser.strln(string("    *------- length of payload (including address byte)"))
 
         cc1101.flushtx{}                        ' flush transmit buffer
         cc1101.txmode{}                         ' set to transmit mode

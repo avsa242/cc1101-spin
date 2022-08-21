@@ -78,15 +78,11 @@ PUB main{} | tmp, rxbytes
         ser.newline{}
 
         { show the packet received as a simple hex dump }
-        repeat tmp from 0 to strsize(@_pkt_tmp)-1
-            ser.hexs(_pkt_tmp[tmp], 2)
-            ser.char(" ")
-        ser.clearline{}
-        ser.newline{}
+        ser.hexdump(@_pkt_tmp, 0, 2, strsize(@_pkt_tmp), 16 <# strsize(@_pkt_tmp))
 
-        ser.strln(string("|  |"))
-        ser.strln(string("|  *- start of payload/data"))
-        ser.strln(string("*---- address packet was sent to"))
+        ser.strln(string("    |  |"))
+        ser.strln(string("    |  *- start of payload/data"))
+        ser.strln(string("    *---- address packet was sent to"))
 
 PUB setup{}
 
