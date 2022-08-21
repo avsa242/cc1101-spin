@@ -6,7 +6,7 @@
         (P2 version)
     Copyright (c) 2022
     Started Nov 29, 2020
-    Updated Aug 14, 2022
+    Updated Aug 21, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -19,7 +19,7 @@ CON
     LED             = cfg.LED1
     SER_BAUD        = 2_000_000
 
-' CC1101 I/O pins
+    { SPI configuration }
     CS_PIN          = 3
     SCK_PIN         = 2
     MOSI_PIN        = 0
@@ -40,7 +40,7 @@ OBJ
     ser     : "com.serial.terminal.ansi"
     cfg     : "core.con.boardcfg.p2eval"
     cc1101  : "wireless.transceiver.cc1101"
-    sf      : "string.format"
+    str     : "string"
 
 VAR
 
@@ -65,19 +65,19 @@ PUB Main() | counter, i, pktlen
     repeat
         bytefill(@_pkt_tmp, 0, MAX_PAYLD)       ' clear out buffer
 
-        ' payload size is user string, the counter digits, and the address
-        pktlen := strsize(_user_str) + strsize(str_counter) + 1
+        { assemble the payload and copy it to the temporary buffer }
+        str.sprintf2(@_pkt_tmp[POS_PAYLD], @"%s%04.4d", _user_str, counter++)
+
+        { payload size is user string, the counter digits, and the address }
+        pktlen := strsize(@_pkt_tmp[POS_PAYLD]) + 1
         _pkt_tmp[POS_PKTLEN] := pktlen          ' 1st byte is payload length
         _pkt_tmp[POS_TONODE] := TO_NODE         ' 2nd byte is destination addr
-
-        ' assemble the payload and copy it to the temporary buffer
-        sf.sprintf(@_pkt_tmp[POS_PAYLD], @"%s%04.4d", _user_str, counter++)
 
         ser.position(0, 3)
         ser.printf(@"Sending (%d): %s\n\r", pktlen, @_pkt_tmp[POS_PAYLD])
 
         repeat i from 0 to pktlen               ' show the packet sent as
-            ser.hex(_pkt_tmp[i], 2)             '   a simple hex dump
+            ser.hexs(_pkt_tmp[i], 2)            '   a simple hex dump
             ser.char(32)
         ser.newline()
 

@@ -5,7 +5,7 @@
     Description: Simple transmit demo of the cc1101 driver
     Copyright (c) 2022
     Started Nov 29, 2020
-    Updated Aug 14, 2022
+    Updated Aug 21, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -18,7 +18,7 @@ CON
     LED             = cfg#LED1
     SER_BAUD        = 115_200
 
-' CC1101 I/O pins
+    { SPI configuration }
     CS_PIN          = 0
     SCK_PIN         = 1
     MOSI_PIN        = 2
@@ -39,14 +39,14 @@ OBJ
     cfg     : "core.con.boardcfg.flip"
     time    : "time"
     cc1101  : "wireless.transceiver.cc1101"
-    sf      : "string.format"
+    str     : "string"
 
 VAR
 
     byte _pkt_tmp[MAX_PAYLD]
     long _user_str[8]
 
-PUB Main{} | counter, i, pktlen
+PUB main{} | counter, i, pktlen
 
     setup{}
 
@@ -64,19 +64,19 @@ PUB Main{} | counter, i, pktlen
     repeat
         bytefill(@_pkt_tmp, 0, MAX_PAYLD)       ' clear out buffer
 
-        ' payload size is user string, the counter digits, and the address
-        pktlen := strsize(_user_str) + strsize(str_counter) + 1
+        { assemble the payload and copy it to the temporary buffer }
+        str.sprintf2(@_pkt_tmp[POS_PAYLD], string("%s%04.4d"), _user_str, counter++)
+
+        { payload size is user string, the counter digits, and the address }
+        pktlen := strsize(@_pkt_tmp[POS_PAYLD]) + 1
         _pkt_tmp[POS_PKTLEN] := pktlen          ' 1st byte is payload length
         _pkt_tmp[POS_TONODE] := TO_NODE         ' 2nd byte is destination addr
-
-        ' assemble the payload and copy it to the temporary buffer
-        sf.sprintf2(@_pkt_tmp[POS_PAYLD], string("%s%04.4d"), _user_str, counter++)
 
         ser.position(0, 3)
         ser.printf2(string("Sending (%d): %s\n\r"), pktlen, @_pkt_tmp[POS_PAYLD])
 
         repeat i from 0 to pktlen               ' show the packet sent as
-            ser.hex(_pkt_tmp[i], 2)             '   a simple hex dump
+            ser.hexs(_pkt_tmp[i], 2)            '   a simple hex dump
             ser.char(32)
         ser.newline{}
 
@@ -89,10 +89,10 @@ PUB Main{} | counter, i, pktlen
         cc1101.txmode{}                         ' set to transmit mode
         cc1101.txpayload(pktlen+1, @_pkt_tmp)   ' transmit the data
 
-        time.msleep(1_000)                           ' delay between packets to
+        time.msleep(1_000)                      ' delay between packets to
                                                 '   avoid abusing the airwaves
 
-PUB Setup{}
+PUB setup{}
 
     ser.start(SER_BAUD)
     time.msleep(30)

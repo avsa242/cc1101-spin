@@ -5,7 +5,7 @@
     Description: Simple receive demo of the cc1101 driver
     Copyright (c) 2022
     Started Nov 29, 2020
-    Updated Aug 14, 2022
+    Updated Aug 21, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -18,7 +18,7 @@ CON
     LED             = cfg#LED1
     SER_BAUD        = 115_200
 
-' CC1101 I/O pins
+    { SPI configuration }
     CS_PIN          = 0
     SCK_PIN         = 1
     MOSI_PIN        = 2
@@ -45,7 +45,7 @@ VAR
     byte _recv[MAX_PAYLD]
     byte _pktlen
 
-PUB Main{} | tmp, rxbytes
+PUB main{} | tmp, rxbytes
 
     setup{}
 
@@ -77,8 +77,9 @@ PUB Main{} | tmp, rxbytes
         ser.clearline{}
         ser.newline{}
 
-        repeat tmp from 0 to strsize(@_pkt_tmp)-1' show the packet received as
-            ser.hex(_pkt_tmp[tmp], 2)           '   a simple hex dump
+        { show the packet received as a simple hex dump }
+        repeat tmp from 0 to strsize(@_pkt_tmp)-1
+            ser.hexs(_pkt_tmp[tmp], 2)
             ser.char(" ")
         ser.clearline{}
         ser.newline{}
@@ -87,7 +88,7 @@ PUB Main{} | tmp, rxbytes
         ser.strln(string("|  *- start of payload/data"))
         ser.strln(string("*---- address packet was sent to"))
 
-PUB Setup{}
+PUB setup{}
 
     ser.start(SER_BAUD)
     time.msleep(30)
