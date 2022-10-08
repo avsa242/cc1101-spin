@@ -5,7 +5,7 @@
     Description: Simple receive demo of the cc1101 driver
     Copyright (c) 2022
     Started Nov 29, 2020
-    Updated Aug 21, 2022
+    Updated Oct 8, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -49,28 +49,28 @@ PUB main{} | tmp, rxbytes
 
     setup{}
 
-    cc1101.presetrobust1{}                      ' use preset settings
-    cc1101.carrierfreq(433_900_000)             ' set carrier frequency
-    cc1101.nodeaddress(NODE_ADDRESS)            ' this node's address
+    cc1101.preset_robust1{}                     ' use preset settings
+    cc1101.carrier_freq(433_900_000)            ' set carrier frequency
+    cc1101.node_addr(NODE_ADDRESS)              ' this node's address
 
     ser.clear{}
     ser.position(0, 0)
-    ser.printf1(string("Receive mode - %dHz\n\r"), cc1101.carrierfreq(-2))
+    ser.printf1(string("Receive mode - %dHz\n\r"), cc1101.carrier_freq(-2))
 
     repeat
         bytefill(@_pkt_tmp, $00, MAX_PAYLD)     ' clear out buffers 
         bytefill(@_recv, $00, MAX_PAYLD)
 
-        cc1101.rxmode{}                         ' set to receive mode
-        repeat until cc1101.fiforxbytes{} => 1  ' wait for first recv'd bytes
-        cc1101.rxpayload(1, @rxbytes)           ' get length of recv'd payload
+        cc1101.rx_mode{}                        ' set to receive mode
+        repeat until cc1101.fifo_rx_bytes{} => 1' wait for first recv'd bytes
+        cc1101.rx_payld(1, @rxbytes)            ' get length of recv'd payload
                                                 ' (1st byte of packet in
                                                 '   default variable-length
                                                 '   packet mode)
 
-        repeat until cc1101.fiforxbytes{} => rxbytes
-        cc1101.rxpayload(rxbytes, @_pkt_tmp)    ' now, read that many bytes
-        cc1101.flushrx{}                        ' flush receive buffer
+        repeat until cc1101.fifo_rx_bytes{} => rxbytes
+        cc1101.rx_payld(rxbytes, @_pkt_tmp)     ' now, read that many bytes
+        cc1101.flush_rx{}                       ' flush receive buffer
 
         ser.position(0, 3)
         ser.printf2(string("Received (%d): %s"), strsize(@_pkt_tmp), @_pkt_tmp)

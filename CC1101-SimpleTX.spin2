@@ -2,11 +2,10 @@
     --------------------------------------------
     Filename: CC1101-SimpleTX.spin2
     Author: Jesse Burt
-    Description: Simple transmit demo of the cc1101 driver
-        (P2 version)
+    Description: Simple transmit demo of the cc1101 driver (P2 version)
     Copyright (c) 2022
     Started Nov 29, 2020
-    Updated Aug 21, 2022
+    Updated Oct 8, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -53,13 +52,13 @@ PUB main() | counter, i, pktlen
 
     _user_str := @"TEST"                        ' any string up to 251 bytes
 
-    cc1101.presetrobust1()                      ' use preset settings
-    cc1101.carrierfreq(433_900_000)             ' freq. to transmit on
-    cc1101.txpower(0)                           ' -30, -20, -15, -10, 0, 5, 7, 10
+    cc1101.preset_robust1()                     ' use preset settings
+    cc1101.carrier_freq(433_900_000)            ' freq. to transmit on
+    cc1101.tx_pwr(0)                            ' -30, -20, -15, -10, 0, 5, 7, 10
 
     ser.clear()
     ser.position(0, 0)
-    ser.printf(@"Transmit mode - %dHz\n\r", cc1101.carrierfreq())
+    ser.printf(@"Transmit mode - %dHz\n\r", cc1101.carrier_freq())
 
     counter := 0
     repeat
@@ -83,9 +82,9 @@ PUB main() | counter, i, pktlen
         ser.strln(@"    |  *---- node address to transmit to")
         ser.strln(@"    *------- length of payload (including address byte)")
 
-        cc1101.flushtx()                        ' flush transmit buffer
-        cc1101.txmode()                         ' set to transmit mode
-        cc1101.txpayload(pktlen+1, @_pkt_tmp)   ' transmit the data
+        cc1101.flush_tx()                       ' flush transmit buffer
+        cc1101.tx_mode()                        ' set to transmit mode
+        cc1101.tx_payld(pktlen+1, @_pkt_tmp)    ' transmit the data
 
         waitms(1_000)                           ' delay between packets to
                                                 '   avoid abusing the airwaves
