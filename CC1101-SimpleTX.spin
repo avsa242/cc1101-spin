@@ -5,7 +5,7 @@
     Description: Simple transmit demo of the cc1101 driver
     Copyright (c) 2022
     Started Nov 29, 2020
-    Updated Oct 8, 2022
+    Updated Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -36,7 +36,7 @@ CON
 OBJ
 
     ser     : "com.serial.terminal.ansi"
-    cfg     : "core.con.boardcfg.flip"
+    cfg     : "boardcfg.flip"
     time    : "time"
     cc1101  : "wireless.transceiver.cc1101"
     str     : "string"
