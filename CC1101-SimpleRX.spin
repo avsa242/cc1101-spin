@@ -3,9 +3,9 @@
     Filename: CC1101-SimpleRX.spin
     Author: Jesse Burt
     Description: Simple receive demo of the cc1101 driver
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started Nov 29, 2020
-    Updated Nov 13, 2022
+    Updated Apr 22, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -33,11 +33,11 @@ CON
 
 OBJ
 
-    ser     : "com.serial.terminal.ansi"
-    cfg     : "boardcfg.flip"
-    time    : "time"
-    str     : "string"
-    cc1101  : "wireless.transceiver.cc1101"
+    ser:    "com.serial.terminal.ansi"
+    cfg:    "boardcfg.flip"
+    time:   "time"
+    str:    "string"
+    cc1101: "wireless.transceiver.cc1101" | PPB = 0 { optional CC1101 crystal offset correction }
 
 VAR
 
@@ -98,7 +98,7 @@ PUB setup{}
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

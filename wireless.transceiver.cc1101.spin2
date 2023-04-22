@@ -3,16 +3,39 @@
     Filename: wireless.transceiver.cc1101.spin2
     Author: Jesse Burt
     Description: Driver for TI's CC1101 ISM-band transceiver (P2 version)
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started Mar 25, 2019
-    Updated Dec 27, 2022
+    Updated Apr 22, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    F_XOSC                  = 26_000_000        ' CC1101 XTAL Oscillator freq
+' -- User-modifiable constants
+{
+    Do not adjust these here. Instead, override them using the constant override feature in the
+    parent object.
+    Example CC1101-App.spin2:
+
+    OBJ
+
+        cc1101: "wireless.transceiver.cc1101" | PPB = 30_000
+            ' or
+        cc1101: "wireless.transceiver.cc1101" | F_XOSC = 25_999_220
+
+    NOTE:
+        If the actual resulting frequency synthesized by the chip is lower than the value
+        set/returned by e.g., carrier_freq(), PPB should be set to a positive number.
+        If it's higher, however, PPB should be a negative number.
+}
+    PPB                     = 0                 ' parts-per-billion (PPB/1000 = PPM)
+
+    { crystal freq: adjust from nominal 26MHz: calculate offset using PPB figure }
+    F_XOSC                  = round(26_000_000-(26_000_000 * (float(PPB) / float(1_000_000_000))))
+
+' --
+
     TWO13                   = 1 << 13           ' 2^13
     TWO14                   = 1 << 14           ' 2^14
     TWO16                   = 1 << 16           ' 2^16
@@ -21,8 +44,8 @@ CON
     TWO20                   = 1 << 20           ' 2^20
     TWO28                   = 1 << 28           ' 2^28
     U64SCALE                = 1_000_000_000     ' Unsigned math scale
-    U64_FREQ_RES            = 396_728515        ' (F_XOSC / TWO16) * 1_000_000
-    CHANSPC_RES             = 99_182128         ' (F_XOSC / TWO18) * 1_000_000
+    U64_FREQ_RES            = round((float(F_XOSC) / float(TWO16))*1_000_000)
+    CHANSPC_RES             = round((float(F_XOSC) / float(TWO18))*1_000_000)
 
 ' Auto-calibration state
     NEVER                   = 0
@@ -306,7 +329,7 @@ PUB carrier_freq(freq=-2): curr_freq
 '       300_000_000..348_000_000, 387_000_000..464_000_000, 779_000_000..928_000_000
 '   Default value: Approx 800_000_000
 '   Any other value polls the chip and returns the current setting
-'   NOTE: The actual set frequency has a resolution of fXOSC/2^16 (i.e., approx 397freq)
+'   NOTE: The actual set frequency has a resolution of fXOSC/2^16 (i.e., approx 397Hz)
     curr_freq := 0
     readreg(core.FREQ2, 3, @curr_freq)
     case freq
@@ -1108,7 +1131,7 @@ PRI writereg(reg_nr, nr_bytes, ptr_buff)
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
