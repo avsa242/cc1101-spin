@@ -1,29 +1,20 @@
 {
-    --------------------------------------------
-    Filename: CC1101-SimpleRX.spin
-    Author: Jesse Burt
-    Description: Simple receive demo of the cc1101 driver
-    Copyright (c) 2023
-    Started Nov 29, 2020
-    Updated Apr 22, 2023
-    See end of file for terms of use.
-    --------------------------------------------
+----------------------------------------------------------------------------------------------------
+    Filename:       CC1101-SimpleRX.spin
+    Description:    Simple receive demo of the cc1101 driver
+    Author:         Jesse Burt
+    Started:        Nov 29, 2020
+    Updated:        Sep 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 }
+
 CON
 
-    _clkmode        = cfg#_clkmode
-    _xinfreq        = cfg#_xinfreq
+    _clkmode        = xtal1+pll16x
+    _xinfreq        = 5_000_000
 
 ' -- User-modifiable constants
-    LED             = cfg#LED1
-    SER_BAUD        = 115_200
-
-    { SPI configuration }
-    CS_PIN          = 0
-    SCK_PIN         = 1
-    MOSI_PIN        = 2
-    MISO_PIN        = 3
-
     NODE_ADDRESS    = $01                       ' this node's address (1..254)
 ' --
 
@@ -31,13 +22,15 @@ CON
     POS_PAYLD       = 1
     MAX_PAYLD       = 255
 
+
 OBJ
 
-    ser:    "com.serial.terminal.ansi"
-    cfg:    "boardcfg.flip"
     time:   "time"
     str:    "string"
-    cc1101: "wireless.transceiver.cc1101" | PPB = 0 { optional CC1101 crystal offset correction }
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=115_200
+    cc1101: "wireless.transceiver.cc1101" | CS=0, SCK=1, MOSI=2, MISO=3, ...
+                                            PPB = 0 { optional CC1101 crystal offset correction }
+
 
 VAR
 
@@ -45,60 +38,63 @@ VAR
     byte _recv[MAX_PAYLD]
     byte _pktlen
 
-PUB main{} | tmp, rxbytes
 
-    setup{}
+PUB main() | rxbytes
 
-    cc1101.preset_robust1{}                     ' use preset settings
+    setup()
+
+    cc1101.preset_robust1()                     ' use preset settings
     cc1101.carrier_freq(433_900_000)            ' set carrier frequency
     cc1101.node_addr(NODE_ADDRESS)              ' this node's address
 
-    ser.clear{}
+    ser.clear()
     ser.pos_xy(0, 0)
-    ser.printf1(string("Receive mode - %dHz\n\r"), cc1101.carrier_freq(-2))
+    ser.printf1(@"Receive mode - %dHz\n\r", cc1101.carrier_freq())
 
     repeat
         bytefill(@_pkt_tmp, $00, MAX_PAYLD)     ' clear out buffers 
         bytefill(@_recv, $00, MAX_PAYLD)
 
-        cc1101.rx_mode{}                        ' set to receive mode
-        repeat until cc1101.fifo_rx_bytes{} => 1' wait for first recv'd bytes
+        cc1101.rx_mode()                        ' set to receive mode
+        repeat until cc1101.fifo_rx_bytes() => 1' wait for first recv'd bytes
         cc1101.rx_payld(1, @rxbytes)            ' get length of recv'd payload
                                                 ' (1st byte of packet in
                                                 '   default variable-length
                                                 '   packet mode)
 
-        repeat until cc1101.fifo_rx_bytes{} => rxbytes
+        repeat until cc1101.fifo_rx_bytes() => rxbytes
         cc1101.rx_payld(rxbytes, @_pkt_tmp)     ' now, read that many bytes
-        cc1101.flush_rx{}                       ' flush receive buffer
+        cc1101.flush_rx()                       ' flush receive buffer
 
         ser.pos_xy(0, 3)
-        ser.printf2(string("Received (%d): %s"), strsize(@_pkt_tmp), @_pkt_tmp)
-        ser.clear_line{}
-        ser.newline{}
+        ser.printf2(@"Received (%d): %s", strsize(@_pkt_tmp), @_pkt_tmp)
+        ser.clear_line()
+        ser.newline()
 
         { show the packet received as a simple hex dump }
         ser.hexdump(@_pkt_tmp, 0, 2, strsize(@_pkt_tmp), 16 <# strsize(@_pkt_tmp))
 
-        ser.strln(string("    |  |"))
-        ser.strln(string("    |  *- start of payload/data"))
-        ser.strln(string("    *---- address packet was sent to"))
+        ser.strln(@"    |  |")
+        ser.strln(@"    |  *- start of payload/data")
+        ser.strln(@"    *---- address packet was sent to")
 
-PUB setup{}
 
-    ser.start(SER_BAUD)
+PUB setup()
+
+    ser.start()
     time.msleep(30)
-    ser.clear{}
-    ser.strln(string("Serial terminal started"))
-    if cc1101.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
-        ser.strln(string("CC1101 driver started"))
+    ser.clear()
+    ser.strln(@"Serial terminal started")
+
+    if ( cc1101.start() )
+        ser.strln(@"CC1101 driver started")
     else
-        ser.strln(string("CC1101 driver failed to start - halting"))
+        ser.strln(@"CC1101 driver failed to start - halting")
         repeat
 
 DAT
 {
-Copyright 2023 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

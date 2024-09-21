@@ -1,30 +1,20 @@
 {
-    --------------------------------------------
-    Filename: CC1101-SimpleTX.spin2
-    Author: Jesse Burt
-    Description: Simple transmit demo of the cc1101 driver (P2 version)
-    Copyright (c) 2023
-    Started Nov 29, 2020
-    Updated Apr 22, 2023
-    See end of file for terms of use.
-    --------------------------------------------
+----------------------------------------------------------------------------------------------------
+    Filename:       CC1101-SimpleTX.spin2
+    Description:    SSimple transmit demo of the cc1101 driver
+    Author:         Jesse Burt
+    Started:        Nov 29, 2020
+    Updated:        Sep 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 }
+
 CON
 
-    _clkfreq        = cfg._clkfreq_def
-    _xtlfreq        = cfg._xtlfreq
+    _clkfreq        = 180_000_000
+    _xtlfreq        = 20_000_000
 
 ' -- User-modifiable constants
-    LED             = cfg.LED1
-    SER_BAUD        = 2_000_000
-
-    { SPI configuration }
-    CS_PIN          = 3
-    SCK_PIN         = 2
-    MOSI_PIN        = 0
-    MISO_PIN        = 1
-    SPI_FREQ        = 5_000_000
-
     TO_NODE         = $01                       ' address to send to (01..FE)
 ' --
 
@@ -34,17 +24,20 @@ CON
     MAX_PAYLD       = 251                       ' 255 - pktlen - addr - CRC
                                                 '       (1byte, 1byte, 2bytes)
 
+
 OBJ
 
-    ser:    "com.serial.terminal.ansi"
-    cfg:    "boardcfg.p2eval"
     str:    "string"
-    cc1101: "wireless.transceiver.cc1101" | PPB = 0 { optional CC1101 crystal offset correction }
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+    cc1101: "wireless.transceiver.cc1101" | CS=0, SCK=1, MOSI=2, MISO=3, SPI_FREQ=5_000_000, ...
+                                            PPB=0 { optional CC1101 crystal offset correction }
+
 
 VAR
 
     byte _pkt_tmp[MAX_PAYLD]
     long _user_str[8]
+
 
 PUB main() | counter, i, pktlen
 
@@ -89,22 +82,24 @@ PUB main() | counter, i, pktlen
         waitms(1_000)                           ' delay between packets to
                                                 '   avoid abusing the airwaves
 
+
 PUB setup()
 
-    ser.start(SER_BAUD)
-    waitms(30)
+    ser.start()
+
     ser.clear()
     ser.strln(@"Serial terminal started")
 
-    if cc1101.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SPI_FREQ)
+    if ( cc1101.start() )
         ser.strln(@"CC1101 driver started")
     else
         ser.strln(@"CC1101 driver failed to start - halting")
         repeat
 
+
 DAT
 {
-Copyright 2023 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
