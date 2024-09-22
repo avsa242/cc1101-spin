@@ -263,7 +263,7 @@ CON
         CSENSE_REL_THR              = 4
         CSENSE_ABS_THR              = 0
         CSENSE_REL_THR_BITS         = %11
-        CSENSE_ABS_THR_BITS         = %111
+        CSENSE_ABS_THR_BITS         = %1111
         AGC_LNA_PRIORITY_MASK       = (1 << AGC_LNA_PRIORITY) ^ AGCCTRL1_MASK
         CSENSE_REL_THR_MASK         = (CSENSE_REL_THR_BITS << CSENSE_REL_THR) ^ AGCCTRL1_MASK
         CSENSE_ABS_THR_MASK         = (CSENSE_ABS_THR_BITS << CSENSE_ABS_THR) ^ AGCCTRL1_MASK
