@@ -239,11 +239,10 @@ PUB addr_check(mode=-2): curr_mode
     curr_mode := readreg(core.PKTCTRL1)
     case mode
         0..3:
-            mode := mode & core.ADR_CHK_BITS
-            mode := ((curr_mode & core.ADR_CHK_MASK) | mode) & core.PKTCTRL1_MASK
+            mode := ((curr_mode & core.ADR_CHK_MASK) | mode)
             writereg(core.PKTCTRL1, mode)
         other:
-            return curr_mode & core.ADR_CHK_BITS
+            return (curr_mode & core.ADR_CHK_BITS)
 
 
 PUB after_rx(next_state=-2): curr_set
@@ -257,8 +256,7 @@ PUB after_rx(next_state=-2): curr_set
     curr_set := readreg(core.MCSM1)
     case next_state
         0..3:
-            next_state := next_state << core.RXOFF_MODE
-            next_state := ((curr_set & core.RXOFF_MODE_MASK) | next_state)
+            next_state := ( (curr_set & core.RXOFF_MODE_MASK) | (next_state << core.RXOFF_MODE) )
             writereg(core.MCSM1, next_state)
         other:
             return (curr_set >> core.RXOFF_MODE) & core.RXOFF_MODE_BITS
@@ -275,8 +273,7 @@ PUB after_tx(next_state=-2): curr_set
     curr_set := readreg(core.MCSM1)
     case next_state
         0..3:
-            next_state := next_state << core.TXOFF_MODE
-            next_state := ((curr_set & core.TXOFF_MODE_MASK) | next_state)
+            next_state := ( (curr_set & core.TXOFF_MODE_MASK) | (next_state << core.TXOFF_MODE) )
             writereg(core.MCSM1, next_state)
         other:
             return (curr_set >> core.TXOFF_MODE) & core.TXOFF_MODE_BITS
@@ -296,12 +293,10 @@ PUB agc_filt_len(len=-2): curr_len
     curr_len := readreg(core.AGCCTRL0)
     case len
         8, 16, 32, 64:
-            len := lookdownz(len: 8, 16, 32, 64) & core.FILT_LEN_BITS
-            len := ((curr_len & core.FILT_LEN_MASK) | len) & core.AGCCTRL0_MASK
+            len := ( (curr_len & core.FILT_LEN_MASK) | lookdownz(len: 8, 16, 32, 64) )
             writereg(core.AGCCTRL0, len)
         other:
-            curr_len := curr_len & core.FILT_LEN_BITS
-            return lookupz(curr_len: 8, 16, 32, 64)
+            return lookupz( (curr_len & core.FILT_LEN_BITS): 8, 16, 32, 64)
 
 
 PUB agc_mode(mode=-2): curr_mode
@@ -315,8 +310,7 @@ PUB agc_mode(mode=-2): curr_mode
     curr_mode := readreg(core.AGCCTRL0)
     case mode
         AGC_NORMAL, AGC_FREEZE_ON_SYNC, AGC_FREEZE_A_AUTO_D, AGC_OFF:
-            mode <<= core.AGC_FREEZE
-            mode := ((curr_mode & core.AGC_FREEZE_MASK) | mode) & core.AGCCTRL0_MASK
+            mode := ( (curr_mode & core.AGC_FREEZE_MASK) | (mode << core.AGC_FREEZE) )
             writereg(core.AGCCTRL0, mode)
         other:
             return (curr_mode >> core.AGC_FREEZE) & core.AGC_FREEZE_BITS
@@ -332,8 +326,7 @@ PUB auto_cal_mode(mode=-2): curr_mode
     curr_mode := readreg(core.MCSM0)
     case mode
         NEVER, IDLE_RXTX, RXTX_IDLE, RXTX_IDLE4:
-            mode := mode << core.FS_AUTOCAL
-            mode := ((curr_mode & core.FS_AUTOCAL_MASK) | mode)
+            mode := ( (curr_mode & core.FS_AUTOCAL_MASK) | (mode << core.FS_AUTOCAL) )
             writereg(core.MCSM0, mode)
         other:
             return (curr_mode >> core.FS_AUTOCAL) & core.FS_AUTOCAL_BITS
@@ -357,8 +350,9 @@ PUB carrier_freq(freq=-2): curr_freq
             freq := muldiv64(TWO16, U64SCALE, freq)
             writereg(core.FREQ2, freq, 3)
         other:
-            curr_freq := readreg(core.FREQ2, 3)
-            return muldiv64(curr_freq, U64_FREQ_RES, 1_000_000)
+            return muldiv64(    readreg(core.FREQ2, 3), ...
+                                U64_FREQ_RES, ...
+                                1_000_000 )
 
 
 PUB carrier_sense_thresh(thresh=-2): curr_thr
@@ -373,27 +367,28 @@ PUB carrier_sense_thresh(thresh=-2): curr_thr
     case thresh
         0, 6, 10, 14:
             thresh := lookdownz(thresh: 0, 6, 10, 14) << core.CSENSE_REL_THR
-            thresh := ((curr_thr & core.CSENSE_REL_THR_MASK) | thresh) & core.AGCCTRL1_MASK
+            thresh := ((curr_thr & core.CSENSE_REL_THR_MASK) | thresh)
             writereg(core.AGCCTRL1, thresh)
         other:
             curr_thr := (curr_thr >> core.CSENSE_REL_THR) & core.CSENSE_REL_THR_BITS
             return lookupz(curr_thr: 0, 6, 10, 14)
 
 
-PUB carrier_sense_abs_thresh(thresh=-2): curr_thr
-' Set absolute change threshold for asserting carrier sense, in dB
+PUB carrier_sense_abs_thresh(thresh=-255): curr_thr
+' Set absolute RSSI threshold for asserting carrier sense, in dB
 '   Valid values:
-'       %0000..%1111
-'   Default value: %0000
+'       -8:     absolute carrier sense threshold disabled
+'       -7..-1: dB below magn_target()
+'       0:      equal to magn_target() (default)
+'       1..7:   dB above magn_target()
 '   Any other value polls the chip and returns the current setting
     curr_thr := readreg(core.AGCCTRL1)
     case thresh
-        %0000..%1111:
-            thresh := thresh & core.CSENSE_ABS_THR_BITS
-            thresh := ((curr_thr & core.CSENSE_ABS_THR_MASK) | thresh) & core.AGCCTRL1_MASK
+        -8..7:
+            thresh := ((curr_thr & core.CSENSE_ABS_THR_MASK) | (thresh & core.CSENSE_ABS_THR_BITS) )
             writereg(core.AGCCTRL1, thresh)
         other:
-            return curr_thr & core.CSENSE_ABS_THR_BITS
+            return ( (curr_thr & core.CSENSE_ABS_THR_BITS) signx 7)
 
 
 PUB channel(number=-2): curr_chan
@@ -404,11 +399,9 @@ PUB channel(number=-2): curr_chan
 '   NOTE: Resulting frequency = (channel number * channel spacing) + base freq
     case number
         0..255:
-            number &= core.CHANNR_MASK
-            writereg(core.CHANNR, number)
+            writereg(core.CHANNR, numbe)
         other:
-            curr_chan := readreg(core.CHANNR)
-            return curr_chan
+            return readreg(core.CHANNR)
 
 
 PUB channel_spacing(width=-2): curr_wid | chanspc_e, chanspc_m
@@ -426,7 +419,6 @@ PUB channel_spacing(width=-2): curr_wid | chanspc_e, chanspc_m
             width.byte[1] := chanspc_m
             writereg(core.MDMCFG1, width, 2)
         other:
-            longfill(@chanspc_e, 0, 2)
             curr_wid := readreg(core.MDMCFG1, 2)
             chanspc_e := curr_wid.byte[0] & core.CHANSPC_E_BITS
             chanspc_m := curr_wid.byte[1]
@@ -443,11 +435,10 @@ PUB crc_check_ena(mode=-2): curr_mode
     curr_mode := readreg(core.PKTCTRL0)
     case abs(mode)
         0, 1:
-            mode := abs(mode) << core.CRC_EN
-            mode := ((curr_mode & core.CRC_EN_MASK) | mode) & core.PKTCTRL0_MASK
+            mode := ( (curr_mode & core.CRC_EN_MASK) | (abs(mode) << core.CRC_EN) )
             writereg(core.PKTCTRL0, mode)
         other:
-            return ((curr_mode >> core.CRC_EN) & %1) == 1
+            return ((curr_mode >> core.CRC_EN) & 1) == 1
 
 
 PUB crc_auto_flush_ena(mode=-2): curr_mode
@@ -459,11 +450,10 @@ PUB crc_auto_flush_ena(mode=-2): curr_mode
     curr_mode := readreg(core.PKTCTRL1)
     case abs(mode)
         0, 1:
-            mode := abs(mode) << core.CRC_AUTOFLUSH
-            mode := ((curr_mode & core.CRC_AUTOFLUSH_MASK) | mode) & core.PKTCTRL1_MASK
+            mode := ((curr_mode & core.CRC_AUTOFLUSH_MASK) | (abs(mode) << core.CRC_AUTOFLUSH) )
             writereg(core.PKTCTRL1, mode)
         other:
-            return ((curr_mode >> core.CRC_AUTOFLUSH) & %1) == 1
+            return ((curr_mode >> core.CRC_AUTOFLUSH) & 1) == 1
 
 
 PUB data_rate(rate=-2): curr_rate | curr_exp, curr_mant, e, m
@@ -502,11 +492,10 @@ PUB data_whiten_ena(mode=-2): curr_mode
     curr_mode := readreg(core.PKTCTRL0)
     case abs(mode)
         0, 1:
-            mode := abs(mode) << core.WHITE_DATA
-            mode := ((curr_mode & core.WHITE_DATA_MASK) | mode)
+            mode := ((curr_mode & core.WHITE_DATA_MASK) | (abs(mode) << core.WHITE_DATA) )
             writereg(core.PKTCTRL0, mode)
         other:
-            return ((curr_mode >> core.WHITE_DATA) & %1) == 1
+            return ((curr_mode >> core.WHITE_DATA) & 1) == 1
 
 
 PUB dc_block_ena(mode=-2): curr_mode
@@ -516,13 +505,12 @@ PUB dc_block_ena(mode=-2): curr_mode
 '   NOTE: Enable for better sensitivity (default).
 '       Disable for optimizing current usage. Only for data rates 250kBaud and lower
     curr_mode := readreg(core.MDMCFG2)
-    case mode := abs(mode)
+    case mode
         0, 1:
-            mode := ((mode ^ 1) << core.DCFILT_OFF)
-            mode := ((curr_mode & core.DCFILT_OFF_MASK) | mode)
+            mode := ((curr_mode & core.DCFILT_OFF_MASK) | ( (abs(mode) ^ 1) << core.DCFILT_OFF) )
             writereg(core.MDMCFG2, mode)
         other:
-            return (((curr_mode >> core.DCFILT_OFF) & %1) ^ 1) == 1
+            return (((curr_mode >> core.DCFILT_OFF) & 1) ^ 1) == 1
 
 
 PUB dev_id(): id
@@ -543,12 +531,10 @@ PUB dvga_gain(gain=-255): curr_gain
     curr_gain := readreg(core.AGCCTRL2)
     case gain
         -3..0:
-            gain := abs(gain) << core.MAX_DVGA_GAIN
-            gain := ((curr_gain & core.MAX_DVGA_GAIN_MASK) | gain)
+            gain := ((curr_gain & core.MAX_DVGA_GAIN_MASK) | (abs(gain) << core.MAX_DVGA_GAIN) )
             writereg(core.AGCCTRL2, gain)
         other:
-            curr_gain := (curr_gain >> core.MAX_DVGA_GAIN) & core.MAX_DVGA_GAIN_BITS
-            return curr_gain * -1
+            return ( (curr_gain >> core.MAX_DVGA_GAIN) & core.MAX_DVGA_GAIN_BITS ) * -1
 
 
 PUB fec_ena(mode=-2): curr_mode
@@ -559,11 +545,10 @@ PUB fec_ena(mode=-2): curr_mode
     curr_mode := readreg(core.MDMCFG1)
     case abs(mode)
         0, 1:
-            mode := abs(mode) << core.FEC_EN
-            mode := ((curr_mode & core.FEC_EN_MASK) | mode) & core.MDMCFG1_MASK
+            mode := ((curr_mode & core.FEC_EN_MASK) | (abs(mode) << core.FEC_EN) )
             writereg(core.MDMCFG1, mode)
         other:
-            return ((curr_mode >> core.FEC_EN) & %1) == 1
+            return ((curr_mode >> core.FEC_EN) & 1) == 1
 
 
 PUB fifo_rx_bytes(): nr_bytes
@@ -629,11 +614,10 @@ PUB gpio0(mode=-2): curr_mode 'XXX review: consolidation with other like methods
     curr_mode := readreg(core.IOCFG0)
     case mode
         $00..$0F, $16..$17, $1B..$1D, $24..$27, $29, $2B, $2E..$3F:
-            mode &= core.GDO0_CFG_BITS
             mode := ((curr_mode & core.GDO0_CFG_MASK) | mode)
             writereg(core.IOCFG0, mode)
         other:
-            return curr_mode & core.GDO0_CFG_BITS
+            return (curr_mode & core.GDO0_CFG_BITS)
 
 
 PUB gpio1(mode=-2): curr_mode
@@ -645,11 +629,10 @@ PUB gpio1(mode=-2): curr_mode
     curr_mode := readreg(core.IOCFG1)
     case mode
         $00..$0F, $16..$17, $1B..$1D, $24..$27, $29, $2B, $2E..$3F:
-            mode &= core.GDO1_CFG_BITS
             mode := ((curr_mode & core.GDO1_CFG_MASK) | mode)
             writereg(core.IOCFG1, mode)
         other:
-            return curr_mode & core.GDO1_CFG_BITS
+            return (curr_mode & core.GDO1_CFG_BITS)
 
 
 PUB gpio2(mode=-2): curr_mode
@@ -660,11 +643,10 @@ PUB gpio2(mode=-2): curr_mode
     curr_mode := readreg(core.IOCFG2)
     case mode
         $00..$0F, $16..$17, $1B..$1D, $24..$27, $29, $2B, $2E..$3F:
-            mode &= core.GDO2_CFG_BITS
             mode := ((curr_mode & core.GDO2_CFG_MASK) | mode)
             writereg(core.IOCFG2, mode)
         other:
-            return curr_mode & core.GDO2_CFG_BITS
+            return (curr_mode & core.GDO2_CFG_BITS)
 
 
 PUB idle()
@@ -679,18 +661,15 @@ PUB interm_freq(freq=-2): curr_freq
 '   Any other value polls the chip and returns the current setting
     case freq
         25_390..787_109:
-            freq := 1024 / (F_XOSC/freq)
-            writereg(core.FSCTRL1, freq)
+            writereg(core.FSCTRL1, ( 1024 / (F_XOSC/freq) ) )
         other:
-            curr_freq := readreg(core.FSCTRL1)
-            return curr_freq * (F_XOSC / 1024)
+            return ( readreg(core.FSCTRL1) * (F_XOSC / 1024) )
 
 
 PUB last_crc_good(): flag
 ' Flag indicating CRC of last reception matched
 '   Returns: TRUE (-1) if comparison matched, FALSE (0) otherwise
-    flag := readreg(core.LQI)
-    return ((flag >> core.CRC_OK) & %1) == 1
+    return ( ( (readreg(core.LQI) >> core.CRC_OK) & 1) == 1 )
 
 
 PUB lna_gain(gain=-255): curr_gain
@@ -724,12 +703,11 @@ PUB magn_target(val=-2): curr_val
     curr_val := readreg(core.AGCCTRL2)
     case val
         24, 27, 30, 33, 36, 38, 40, 42:
-            val := lookdownz(val: 24, 27, 30, 33, 36, 38, 40, 42) & core.MAGN_TARGET_BITS
-            val := ((curr_val & core.MAGN_TARGET_MASK) | val)
+            val := ( (curr_val & core.MAGN_TARGET_MASK) | ...
+                    lookdownz(val: 24, 27, 30, 33, 36, 38, 40, 42) )
             writereg(core.AGCCTRL2, val)
         other:
-            curr_val := curr_val & core.MAGN_TARGET_BITS
-            return lookupz(curr_val: 24, 27, 30, 33, 36, 38, 40, 42)
+            return lookupz( (curr_val & core.MAGN_TARGET_BITS): 24, 27, 30, 33, 36, 38, 40, 42)
 
 
 PUB manchest_enc_ena(mode=-2): curr_mode
@@ -739,11 +717,10 @@ PUB manchest_enc_ena(mode=-2): curr_mode
     curr_mode := readreg(core.MDMCFG2)
     case abs(mode)
         0, 1:
-            mode := abs(mode) << core.MANCHST_EN
-            mode := ((curr_mode & core.MANCHST_EN_MASK) | mode)
+            mode := ( (curr_mode & core.MANCHST_EN_MASK) | (abs(mode) << core.MANCHST_EN) )
             writereg(core.MDMCFG2, mode)
         other:
-            return ((curr_mode >> core.MANCHST_EN) & %1) == 1
+            return ( ( (curr_mode >> core.MANCHST_EN) & 1) == 1 )
 
 
 PUB modulation(mode=-2): curr_mode
@@ -759,11 +736,10 @@ PUB modulation(mode=-2): curr_mode
     curr_mode := readreg(core.MDMCFG2)
     case mode
         FSK2, GFSK, ASKOOK, FSK4, MSK:
-            mode := mode << core.MOD_FORMAT
-            mode := ((curr_mode & core.MOD_FORMAT_MASK) | mode)
+            mode := ( (curr_mode & core.MOD_FORMAT_MASK) | (mode << core.MOD_FORMAT) )
             writereg(core.MDMCFG2, mode)
         other:
-            return (curr_mode >> core.MOD_FORMAT) & core.MOD_FORMAT_BITS
+            return ( (curr_mode >> core.MOD_FORMAT) & core.MOD_FORMAT_BITS )
 
 
 PUB node_addr(addr=-2): curr_addr
@@ -774,11 +750,9 @@ PUB node_addr(addr=-2): curr_addr
 '   NOTE: $00 and $FF can be used as broadcast addresses.
     case addr
         $00..$FF:
-            addr &= core.ADDR_MASK
             writereg(core.ADDR, addr)
         other:
-            curr_addr := readreg(core.ADDR)
-            return curr_addr
+            return readreg(core.ADDR)
 
 
 PUB pa_read(ptr_buff)
@@ -812,11 +786,9 @@ PUB payld_len(length=-2): curr_len
 '   Any other value polls the chip and returns the current setting
     case length
         1..255:
-            length &= core.PKTLEN_MASK
             writereg(core.PKTLEN, length)
         other:
-            curr_len := readreg(core.PKTLEN)
-            return curr_len & core.PKTLEN_MASK
+            return readreg(core.PKTLEN)
 
 
 PUB payld_len_cfg(mode=-2): curr_mode
@@ -830,10 +802,9 @@ PUB payld_len_cfg(mode=-2): curr_mode
     curr_mode := readreg(core.PKTCTRL0)
     case mode
         0..2:
-            mode := ((curr_mode & core.LEN_CFG_MASK) | mode)
-            writereg(core.PKTCTRL0, mode)
+            writereg(core.PKTCTRL0, ( (curr_mode & core.LEN_CFG_MASK) | mode) )
         other:
-            return curr_mode & core.LEN_CFG_BITS
+            return (curr_mode & core.LEN_CFG_BITS)
 
 
 PUB payld_status_ena(mode=-2): curr_mode
@@ -845,18 +816,16 @@ PUB payld_status_ena(mode=-2): curr_mode
     curr_mode := readreg(core.PKTCTRL1)
     case abs(mode)
         0, 1:
-            mode := abs(mode) << core.APPEND_STATUS
-            mode := ((curr_mode & core.APPEND_STATUS_MASK) | mode) & core.PKTCTRL1_MASK
+            mode := ( (curr_mode & core.APPEND_STATUS_MASK) | (abs(mode) << core.APPEND_STATUS) )
             writereg(core.PKTCTRL1, mode)
         other:
-            return ((curr_mode >> core.APPEND_STATUS) & %1) == 1
+            return ( ( (curr_mode >> core.APPEND_STATUS) & 1) == 1 )
 
 
 PUB pll_locked(): flag
 ' Flag indicating PLL is locked
 '   Returns: TRUE (-1) if locked, FALSE otherwise
-    flag := readreg(core.FSCAL1)
-    return (flag <> $3F)
+    return (readreg(core.FSCAL1) <> $3F)
 
 
 PUB preamble_len(len=-2): curr_len
@@ -866,11 +835,11 @@ PUB preamble_len(len=-2): curr_len
     curr_len := readreg(core.MDMCFG1)
     case len
         2, 3, 4, 6, 8, 12, 16, 24:
-            len := (lookdownz(len: 2, 3, 4, 6, 8, 12, 16, 24)) << core.NUM_PREAMBLE
-            len := ((curr_len & core.NUM_PREAMBLE_MASK) | len)
+            len := ( (curr_len & core.NUM_PREAMBLE_MASK) | ...
+                    (lookdownz(len: 2, 3, 4, 6, 8, 12, 16, 24) << core.NUM_PREAMBLE) )
             writereg(core.MDMCFG1, len)
         other:
-            curr_len := (curr_len >> core.NUM_PREAMBLE) & core.NUM_PREAMBLE_BITS
+            curr_len := ( (curr_len >> core.NUM_PREAMBLE) & core.NUM_PREAMBLE_BITS )
             return lookupz(curr_len: 2, 3, 4, 6, 8, 12, 16, 24)
 
 
@@ -882,8 +851,8 @@ PUB preamble_quality_thresh(thresh=-2): curr_thr
     curr_thr := readreg(core.PKTCTRL1)
     case thresh
         0, 4, 8, 12, 16, 20, 24, 28:
-            thresh := lookdownz(thresh: 0, 4, 8, 12, 16, 20, 24, 28) << core.PQT
-            thresh := ((curr_thr & core.PQT_MASK) | thresh) & core.PKTCTRL1_MASK
+            thresh := ( (curr_thr & core.PQT_MASK) | ...
+                        (lookdownz(thresh: 0, 4, 8, 12, 16, 20, 24, 28) << core.PQT) )
             writereg(core.PKTCTRL1, thresh)
         other:
             curr_thr := ((curr_thr >> core.PQT) & core.PQT_BITS)
@@ -912,13 +881,13 @@ PUB rx_bw(width=-2): curr_wid
     curr_wid := readreg(core.MDMCFG4)
     case width
         812, 650, 541, 464, 406, 325, 270, 232, 203, 162, 135, 116, 102, 81, 68, 58:
-            width := (lookdown(width:   812, 650, 541, 464, 406, 325, 270, 232, 203, 162, 135, ...
-                                        116, 102, 81, 68, 58)-1) << core.CHANBW
-            width := ((curr_wid & core.CHANBW_MASK) | width)
+            width := ( (curr_wid & core.CHANBW_MASK) | ...
+                    ( lookdownz(width:  812, 650, 541, 464, 406, 325, 270, 232, 203, 162, 135, ...
+                                        116, 102, 81, 68, 58) << core.CHANBW) )
             writereg(core.MDMCFG4, width)
         other:
-            curr_wid := ((curr_wid >> core.CHANBW) & core.CHANBW_BITS)+1
-            return lookup(curr_wid: 812, 650, 541, 464, 406, 325, 270, 232, 203, 162, 135, 116, ...
+            curr_wid := ((curr_wid >> core.CHANBW) & core.CHANBW_BITS)
+            return lookupz(curr_wid: 812, 650, 541, 464, 406, 325, 270, 232, 203, 162, 135, 116, ...
                                     102, 81, 68, 58)
 
 
@@ -932,12 +901,11 @@ PUB rx_fifo_thresh(thresh=-2): curr_thr
     curr_thr := readreg(core.FIFOTHR)
     case thresh
         4..64:
-            thresh := (thresh / 4) - 1
-            thresh := ((curr_thr & core.FIFO_THR_MASK) | thresh) & core.FIFOTHR_MASK
+            thresh := ((curr_thr & core.FIFO_THR_MASK) | ( (thresh / 4) - 1) )
             writereg(core.FIFOTHR, thresh)
 
         other:
-            return ((curr_thr & core.FIFO_THR_BITS) + 1) * 4
+            return ( ( (curr_thr & core.FIFO_THR_BITS) + 1) * 4 )
 
 
 PUB rx_mode()
@@ -992,10 +960,9 @@ PUB syncwd_mode(mode=-2): curr_mode
     curr_mode := readreg(core.MDMCFG2)
     case mode
         0..7:
-            mode := ((curr_mode & core.SYNC_MODE_MASK) | mode) & core.MDMCFG2_MASK
-            writereg(core.MDMCFG2, mode)
+            writereg(core.MDMCFG2, ((curr_mode & core.SYNC_MODE_MASK) | mode) )
         other:
-            return curr_mode & core.SYNC_MODE_BITS
+            return (curr_mode & core.SYNC_MODE_BITS)
 
 
 PUB set_syncwd(p_syncwd)
@@ -1076,10 +1043,9 @@ PUB tx_pwr_idx(idx=-2): curr_idx
     curr_idx := readreg(core.FREND0)
     case idx
         0..7:
-            idx := ((curr_idx & core.PA_POWER_MASK) | idx) & core.FREND0_MASK
-            writereg(core.FREND0, idx)
+            writereg(core.FREND0, ( (curr_idx & core.PA_POWER_MASK) | idx) )
         other:
-            return curr_idx & core.PA_POWER_BITS
+            return (curr_idx & core.PA_POWER_BITS)
 
 
 
