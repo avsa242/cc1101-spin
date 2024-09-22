@@ -48,7 +48,7 @@ PUB main() | counter, i, pktlen
 
     cc1101.preset_robust1()                     ' use preset settings
     cc1101.carrier_freq(433_900_000)            ' freq. to transmit on
-    cc1101.tx_pwr(0)                            ' -30, -20, -15, -10, 0, 5, 7, 10
+    cc1101.tx_pwr(-20)                            ' -30, -20, -15, -10, 0, 5, 7, 10
 
     ser.clear()
     ser.pos_xy(0, 0)

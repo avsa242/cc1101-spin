@@ -28,8 +28,8 @@ OBJ
 
     str:    "string"
     ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
-    cc1101: "wireless.transceiver.cc1101" | CS=0, SCK=1, MOSI=2, MISO=3, SPI_FREQ=5_000_000, ...
-                                            PPB = 0 { optional CC1101 crystal offset correction }
+    cc1101: "wireless.transceiver.cc1101" | CS=32+3, SCK=32+2, MOSI=32+0, MISO=32+1, SPI_FREQ=5_000_000, ...
+                                            PPB = 72_000 { optional CC1101 crystal offset correction }
 
 
 VAR

@@ -29,8 +29,8 @@ OBJ
 
     str:    "string"
     ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
-    cc1101: "wireless.transceiver.cc1101" | CS=0, SCK=1, MOSI=2, MISO=3, SPI_FREQ=5_000_000, ...
-                                            PPB=0 { optional CC1101 crystal offset correction }
+    cc1101: "wireless.transceiver.cc1101" | CS=32+3, SCK=32+2, MOSI=32+0, MISO=32+1, SPI_FREQ=5_000_000, ...
+                                            PPB=72_000 { optional CC1101 crystal offset correction }
 
 
 VAR
@@ -47,7 +47,7 @@ PUB main() | counter, i, pktlen
 
     cc1101.preset_robust1()                     ' use preset settings
     cc1101.carrier_freq(433_900_000)            ' freq. to transmit on
-    cc1101.tx_pwr(0)                            ' -30, -20, -15, -10, 0, 5, 7, 10
+    cc1101.tx_pwr(-20)                            ' -30, -20, -15, -10, 0, 5, 7, 10
 
     ser.clear()
     ser.pos_xy(0, 0)
