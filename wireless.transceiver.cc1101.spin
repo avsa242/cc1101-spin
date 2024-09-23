@@ -4,7 +4,7 @@
     Description:    Driver for the CC1101 ISM-band transceiver
     Author:         Jesse Burt
     Started:        Mar 25, 2019
-    Updated:        Sep 20, 2024
+    Updated:        Sep 23, 2024
     Copyright (c) 2024 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -34,12 +34,12 @@ CON
     F_XOSC                  = round(26_000_000-(26_000_000 * (float(PPB) / float(1_000_000_000))))
 
     { SPI }
-    CS                  = 0
-    SCK                 = 1
-    MOSI                = 2
-    MISO                = 3
-    RST                 = 4
-    SPI_FREQ            = 1_000_000
+    CS                      = 0
+    SCK                     = 1
+    MOSI                    = 2
+    MISO                    = 3
+    RST                     = 4
+    SPI_FREQ                = 1_000_000
 
 ' --
 
@@ -605,6 +605,16 @@ PUB freq_dev(freq=-2): curr_freq | tmp, deviat_m, deviat_e, tmp_m
             return F_XOSC / TWO17 * (8 + deviat_m) * (1 << deviat_e)
 
 
+PUB freq_offset_est(): f
+' Get the estimated frequency offset from a transmitted carrier
+'   NOTE: Use after receiving a payload
+'   NOTE: This function is only supported for 2-FSK, GFSK, 4-FSK, and
+'   MSK modulation. It will return 0 when using ASK or OOK modulation.
+    fs := readreg(core.FSCTRL0)
+    return ~fs * (F_XOSC/TWO14)                 ' extend sign
+
+
+
 PUB freq_synth_ena()
 ' Enable frequency synthesizer and calibrate
     command(core.CS_SFSTXON)
@@ -936,6 +946,16 @@ PUB rx_payld(nr_bytes, ptr_buff): s
     return nr_bytes
 
 
+PUB set_frequency_offset(f)
+' Frequency offset in Hz added to the base frequency ( carrier_freq() )
+'   f:
+'       -202_000..202_000 (if XTAL is 26MHz), resolution is approx 1590Hz
+'       -210_000..210_000 (if XTAL is 27MHz), resolution is approx 1650Hz
+'   NOTE: Use result from freq_offset_est() after receiving a packet to determine the setting
+    f := f / (F_XOSC / TWO14)
+    writereg(core.FSCTRL0, f)
+
+
 PUB sleep()
 ' Power down chip
     command(core.CS_SPWD)
@@ -997,10 +1017,13 @@ PUB tx_mode()
     command(core.CS_STX)
 
 
-PUB tx_payld(nr_bytes, ptr_buff)
+PUB tx_payld(nr_bytes, ptr_buff): n
 ' Queue data to transmit in the TX FIFO
 '   nr_bytes Valid values: 1..64
 '   Any other value is ignored
+'   Returns:
+'       number of bytes queued on success
+'       0 on invalid number
     if ( (nr_bytes < 1) or (nr_bytes > 64) )
         return 0
 
